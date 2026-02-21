@@ -1,0 +1,9 @@
+{
+    "name": "Lordseriouspig's Website",
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+    "features": {
+        "ghcr.io/devcontainers/features/node:1": {},
+        "ghcr.io/devcontainers/features/rust:1": {}
+    },
+    "forwardPorts": [5173]
+}

@@ -30,14 +30,14 @@ enum AppState {
 #[derive(Default, Clone, Copy, Display, FromRepr, EnumIter)]
 enum SelectedTab {
     #[default]
-    #[strum(to_string = "Tab 1")]
-    Tab1,
-    #[strum(to_string = "Tab 2")]
-    Tab2,
-    #[strum(to_string = "Tab 3")]
-    Tab3,
-    #[strum(to_string = "Tab 4")]
-    Tab4,
+    #[strum(to_string = "Home")]
+    Home,
+    #[strum(to_string = "About")]
+    About,
+    #[strum(to_string = "Projects")]
+    Projects,
+    #[strum(to_string = "Contact")]
+    Contact,
 }
 
 impl App {
@@ -97,9 +97,9 @@ impl Widget for &App {
         let [tabs_area, title_area] = horizontal.areas(header_area);
 
         let background = Block::default().style(Style::default().bg(Color::Rgb(
-            themes::catppuccin::BACKGROUND.rgb.r,
-            themes::catppuccin::BACKGROUND.rgb.g,
-            themes::catppuccin::BACKGROUND.rgb.b,
+            themes::catppuccin::BACKGROUND_PANE.rgb.r,
+            themes::catppuccin::BACKGROUND_PANE.rgb.g,
+            themes::catppuccin::BACKGROUND_PANE.rgb.b,
         )));
 
         background.render(area, buf);
@@ -114,7 +114,13 @@ impl Widget for &App {
 impl App {
     fn render_tabs(&self, area: Rect, buf: &mut Buffer) {
         let titles = SelectedTab::iter().map(SelectedTab::title);
-        let highlight_style = (Color::default(), Color::Rgb(
+        let highlight_style = Style::default()
+        .fg(Color::Rgb(
+            themes::catppuccin::ON_ACCENT.rgb.r,
+            themes::catppuccin::ON_ACCENT.rgb.g,
+            themes::catppuccin::ON_ACCENT.rgb.b,
+        ))
+        .bg(Color::Rgb(
             themes::catppuccin::ACTIVE_BORDER.rgb.r,
             themes::catppuccin::ACTIVE_BORDER.rgb.g,
             themes::catppuccin::ACTIVE_BORDER.rgb.b,
@@ -143,10 +149,10 @@ impl Widget for SelectedTab {
     fn render(self, area: Rect, buf: &mut Buffer) {
         // in a real app these might be separate widgets
         match self {
-            Self::Tab1 => self.render_tab0(area, buf),
-            Self::Tab2 => self.render_tab1(area, buf),
-            Self::Tab3 => self.render_tab2(area, buf),
-            Self::Tab4 => self.render_tab3(area, buf),
+            Self::Home => home::render(self.block(), area, buf),
+            Self::About => self.render_tab1(area, buf),
+            Self::Projects => self.render_tab2(area, buf),
+            Self::Contact => self.render_tab3(area, buf),
         }
     }
 }
@@ -156,9 +162,9 @@ impl SelectedTab {
     fn title(self) -> Line<'static> {
         format!("  {self}  ")
             .fg(Color::Rgb(
-                themes::catppuccin::COLOR_0.rgb.r,
-                themes::catppuccin::COLOR_0.rgb.g,
-                themes::catppuccin::COLOR_0.rgb.b,
+                themes::catppuccin::ON_ACCENT.rgb.r,
+                themes::catppuccin::ON_ACCENT.rgb.g,
+                themes::catppuccin::ON_ACCENT.rgb.b,
             ))
             .bg(Color::Rgb(
                 themes::catppuccin::INACTIVE_BORDER.rgb.r,
@@ -166,12 +172,6 @@ impl SelectedTab {
                 themes::catppuccin::INACTIVE_BORDER.rgb.b,
             ),)
             .into()
-    }
-
-    fn render_tab0(self, area: Rect, buf: &mut Buffer) {
-        Paragraph::new("Hello, World!")
-            .block(self.block())
-            .render(area, buf);
     }
 
     fn render_tab1(self, area: Rect, buf: &mut Buffer) {

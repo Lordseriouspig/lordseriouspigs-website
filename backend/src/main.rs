@@ -1,8 +1,10 @@
 pub mod tui;
+pub mod app;
+pub mod middleware;
 
 use color_eyre::Result;
 
-use crate::tui::main::App;
+use crate::app::models::state::App;
 
 fn main() -> Result<()> {
     color_eyre::install()?;

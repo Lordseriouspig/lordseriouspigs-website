@@ -1,86 +1,28 @@
 use crate::tui::themes;
-use color_eyre::Result;
 use ratatui::{
     buffer::Buffer,
-    crossterm::event::{self, Event, KeyCode, KeyEventKind},
     layout::{Constraint, Layout, Rect},
     style::{Color, Style, Stylize},
     symbols,
     text::Line,
     widgets::{Block, Padding, Paragraph, Tabs, Widget},
-    DefaultTerminal,
 };
-use strum::{Display, EnumIter, FromRepr, IntoEnumIterator};
+use strum::IntoEnumIterator;
 
+use crate::app::models::state::{App, SelectedTab};
 use crate::tui::views::home;
 
-#[derive(Default)]
-pub struct App {
-    state: AppState,
-    selected_tab: SelectedTab,
-}
-
-#[derive(Default, Clone, Copy, PartialEq, Eq)]
-enum AppState {
-    #[default]
-    Running,
-    Quitting,
-}
-
-#[derive(Default, Clone, Copy, Display, FromRepr, EnumIter)]
-enum SelectedTab {
-    #[default]
-    #[strum(to_string = "Home")]
-    Home,
-    #[strum(to_string = "About")]
-    About,
-    #[strum(to_string = "Projects")]
-    Projects,
-    #[strum(to_string = "Contact")]
-    Contact,
-}
-
-impl App {
-    pub fn run(mut self, mut terminal: DefaultTerminal) -> Result<()> {
-        while self.state == AppState::Running {
-            terminal.draw(|frame| frame.render_widget(&self, frame.area()))?;
-            if let Event::Key(key) = event::read()? {
-                if key.kind == KeyEventKind::Press {
-                    match key.code {
-                        KeyCode::Char('l') | KeyCode::Right => self.next_tab(),
-                        KeyCode::Char('h') | KeyCode::Left => self.previous_tab(),
-                        KeyCode::Char('q') | KeyCode::Esc => self.quit(),
-                        _ => {}
-                    }
-                }
-            }
-        }
-        Ok(())
-    }
-
-    pub fn next_tab(&mut self) {
-        self.selected_tab = self.selected_tab.next();
-    }
-
-    pub fn previous_tab(&mut self) {
-        self.selected_tab = self.selected_tab.previous();
-    }
-
-    pub fn quit(&mut self) {
-        self.state = AppState::Quitting;
-    }
-}
 
 impl SelectedTab {
     /// Get the previous tab, if there is no previous tab return the current tab.
-    fn previous(self) -> Self {
+    pub fn previous(self) -> Self {
         let current_index: usize = self as usize;
         let previous_index = current_index.saturating_sub(1);
         Self::from_repr(previous_index).unwrap_or(self)
     }
 
     /// Get the next tab, if there is no next tab return the current tab.
-    fn next(self) -> Self {
+    pub fn next(self) -> Self {
         let current_index = self as usize;
         let next_index = current_index.saturating_add(1);
         Self::from_repr(next_index).unwrap_or(self)

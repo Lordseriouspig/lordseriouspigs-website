@@ -1,7 +1,5 @@
 use catppuccin::{Color, FlavorColors};
 
-use crate::tui::models;
-
 const fn modify_color(color: Color) -> Color {
     let mut modified = color;
     modified.hsl.l *= 0.94; // lightness * 0.94

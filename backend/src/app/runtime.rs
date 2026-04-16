@@ -5,11 +5,9 @@ use ratatui::{
 };
 
 use crate::app::models::state::{App, AppState};
-use crate::app::models::session::Session;
-
 
 impl App {
-    pub fn run<B: ratatui::backend::Backend>(mut self, session: Session, mut terminal: Terminal<B>) -> Result<()> {
+    pub fn run<B: ratatui::backend::Backend>(mut self, mut terminal: Terminal<B>) -> Result<()> {
         while self.state == AppState::Running {
             self.tick(&mut terminal)?;
         }

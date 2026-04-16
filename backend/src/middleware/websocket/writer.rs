@@ -9,6 +9,7 @@ impl Write for WsWriter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         // send raw ANSI bytes
         let _ = self.tx.send(buf.to_vec());
+        eprintln!("Sent bytes: {:?}", buf);
         Ok(buf.len())
     }
 

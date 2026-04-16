@@ -27,6 +27,7 @@ async fn handle_socket(
     mut rx: broadcast::Receiver<Vec<u8>>,
 ) {
     while let Ok(bytes) = rx.recv().await {
+        eprintln!("Received bytes: {:?}", bytes);
         if socket.send(Message::Binary(bytes.into())).await.is_err() {
             break;
         }

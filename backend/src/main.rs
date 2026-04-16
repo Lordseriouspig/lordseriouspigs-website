@@ -5,7 +5,7 @@ pub mod middleware;
 use color_eyre::Result;
 use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
-use tokio::sync::mpsc;
+use tokio::sync::broadcast;
 
 use crate::app::models::state::App;
 use crate::middleware::websocket::{writer::WsWriter, server::start_server};
@@ -14,7 +14,7 @@ use crate::middleware::websocket::{writer::WsWriter, server::start_server};
 async fn main() -> Result<()> {
     color_eyre::install()?;
     // Create websocket channel (PLACEHOLDER)
-    let (tx, _) = tokio::sync::broadcast::channel::<Vec<u8>>(100);
+    let (tx, _) = broadcast::channel::<Vec<u8>>(100);
 
     // Wire up my writer
     let writer = WsWriter { tx: tx.clone() };

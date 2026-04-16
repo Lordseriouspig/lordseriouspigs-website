@@ -1,22 +1,30 @@
 use color_eyre::Result;
 use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyEventKind},
-    DefaultTerminal,
+    Terminal,
 };
 
 use crate::app::models::state::{App, AppState};
+use crate::app::models::session::Session;
 
 
 impl App {
-    pub fn run(mut self, mut terminal: DefaultTerminal) -> Result<()> {
+    pub fn run<B: ratatui::backend::Backend>(mut self, session: Session, mut terminal: Terminal<B>) -> Result<()> {
         while self.state == AppState::Running {
             self.tick(&mut terminal)?;
         }
         Ok(())
     }
 
-    pub fn tick(&mut self, terminal: &mut DefaultTerminal) -> Result<()> {
-        terminal.draw(|frame| frame.render_widget(&*self, frame.area()))?;
+    pub fn tick<B: ratatui::backend::Backend>(&mut self, terminal: &mut Terminal<B>) -> Result<()> {
+        if let Err(err) = terminal.draw(|frame| {
+            frame.render_widget(&*self, frame.area())
+        }) {
+            eprintln!("draw failed: {err}");
+            self.quit();
+            return Ok(());
+        }
+
         if let Event::Key(key) = event::read()? {
             if key.kind == KeyEventKind::Press {
                 self.handle_input(Event::Key(key));

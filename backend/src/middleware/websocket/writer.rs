@@ -18,17 +18,21 @@ use tokio::sync::broadcast;
 
 pub struct WsWriter {
     pub tx: broadcast::Sender<Vec<u8>>,
+    pub buffer: Vec<u8>,
 }
 
 impl Write for WsWriter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        // send raw ANSI bytes
-        let _ = self.tx.send(buf.to_vec());
-        eprintln!("Sent bytes: {:?}", buf);
+        self.buffer.extend_from_slice(buf);
         Ok(buf.len())
     }
 
     fn flush(&mut self) -> io::Result<()> {
+        if !self.buffer.is_empty() {
+            let frame = std::mem::take(&mut self.buffer);
+            eprintln!("Sent frame: {} bytes", frame.len());
+            let _ = self.tx.send(frame);
+        }
         Ok(())
     }
 }

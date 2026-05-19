@@ -93,7 +93,7 @@ impl App {
 }
 
 fn render_title(area: Rect, buf: &mut Buffer) {
-    "Lordseriouspig's Website".bold().render(area, buf);
+    "Lachlan's Website".bold().render(area, buf);
 }
 
 fn render_footer(area: Rect, buf: &mut Buffer) {

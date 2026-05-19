@@ -18,15 +18,21 @@ use axum::{
     routing::get,
     Router,
 };
-use tokio::sync::broadcast;
 use std::net::SocketAddr;
+use std::sync::{Arc, Mutex};
+use tokio::sync::broadcast;
+use tokio::sync::oneshot;
 
-pub async fn start_server(tx: broadcast::Sender<Vec<u8>>) {
+pub async fn start_server(tx: broadcast::Sender<Vec<u8>>, ready_tx: oneshot::Sender<()>) {
+    let ready_tx = Arc::new(Mutex::new(Some(ready_tx)));
     let socket = Router::new().route(
         "/ws", 
         get(move |ws: WebSocketUpgrade| {
             let tx = tx.clone();
-            async move { ws. on_upgrade(move |socket| handle_socket(socket, tx.subscribe())) }
+            let ready_tx = ready_tx.clone();
+            async move {
+                ws.on_upgrade(move |socket| handle_socket(socket, tx.subscribe(), ready_tx))
+            }
         }),
     );
 
@@ -40,11 +46,44 @@ pub async fn start_server(tx: broadcast::Sender<Vec<u8>>) {
 async fn handle_socket(
     mut socket: WebSocket,
     mut rx: broadcast::Receiver<Vec<u8>>,
+    ready_tx: Arc<Mutex<Option<oneshot::Sender<()>>>>,
 ) {
-    while let Ok(bytes) = rx.recv().await {
-        eprintln!("Received bytes: {:?}", bytes);
-        if socket.send(Message::Binary(bytes.into())).await.is_err() {
-            break;
+    let mut browser_ready = false;
+
+    loop {
+        tokio::select! {
+            message = socket.recv() => {
+                match message {
+                    Some(Ok(Message::Text(text))) if text == "browser-ready" && !browser_ready => {
+                        browser_ready = true;
+                        if let Some(ready_tx) = ready_tx.lock().unwrap().take() {
+                            let _ = ready_tx.send(());
+                        }
+                    }
+                    Some(Ok(Message::Close(_))) | None => break,
+                    Some(Ok(_)) => {}
+                    Some(Err(_)) => break,
+                }
+            }
+            bytes = rx.recv() => {
+                match bytes {
+                    Ok(bytes) => {
+                        eprintln!("Received bytes: {:?}", bytes);
+                        if socket.send(Message::Binary(bytes.into())).await.is_err() {
+                            break;
+                        }
+                    }
+                    Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
+                        eprintln!("Client lagged, dropped {} messages", n);
+                        // skip and continue; don't tear down the websocket for slow clients
+                        continue;
+                    }
+                    Err(tokio::sync::broadcast::error::RecvError::Closed) => {
+                        eprintln!("Broadcast channel closed");
+                        break;
+                    }
+                }
+            }
         }
     }
 }

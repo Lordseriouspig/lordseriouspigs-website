@@ -29,12 +29,13 @@ const ASCII_ART_1: &str = r#" _    _      _ _       _    _____ _
 |  __  |/ _ \ | |/ _ \| |    | |   | '_ ` _ \
 | |  | |  __/ | | (_) |_|   _| |_  | | | | | |
 |_|  |_|\___|_|_|\___/(_)  |_____| |_| |_| |_|"#;
-const ASCII_ART_2: &str = r#"██╗      ██████╗ ██████╗ ██████╗ ███████╗███████╗██████╗ ██╗ ██████╗ ██╗   ██╗███████╗██████╗ ██╗ ██████╗
-██║     ██╔═══██╗██╔══██╗██╔══██╗██╔════╝██╔════╝██╔══██╗██║██╔═══██╗██║   ██║██╔════╝██╔══██╗██║██╔════╝
-██║     ██║   ██║██████╔╝██║  ██║███████╗█████╗  ██████╔╝██║██║   ██║██║   ██║███████╗██████╔╝██║██║  ███╗
-██║     ██║   ██║██╔══██╗██║  ██║╚════██║██╔══╝  ██╔══██╗██║██║   ██║██║   ██║╚════██║██╔═══╝ ██║██║   ██║
-███████╗╚██████╔╝██║  ██║██████╔╝███████║███████╗██║  ██║██║╚██████╔╝╚██████╔╝███████║██║     ██║╚██████╔╝
-╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝╚═╝ ╚═════╝  ╚═════╝ ╚══════╝╚═╝     ╚═╝ ╚═════╝"#;
+const ASCII_ART_2: &str = r#"██╗      █████╗  ██████╗██╗  ██╗██╗      █████╗ ███╗   ██╗
+██║     ██╔══██╗██╔════╝██║  ██║██║     ██╔══██╗████╗  ██║
+██║     ███████║██║     ███████║██║     ███████║██╔██╗ ██║
+██║     ██╔══██║██║     ██╔══██║██║     ██╔══██║██║╚██╗██║
+███████╗██║  ██║╚██████╗██║  ██║███████╗██║  ██║██║ ╚████║
+╚══════╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝
+                                                          "#;
 
 const BODY_TEXT: &str = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed condimentum nulla bibendum enim fermentum, id viverra ligula posuere. Curabitur hendrerit eros sed finibus porttitor. Vestibulum nec sollicitudin turpis. Maecenas sed nisl turpis. Mauris porttitor nec nunc vitae commodo. Nunc eget nibh sit amet ipsum tempus maximus. Duis venenatis malesuada metus imperdiet sodales. Etiam eu facilisis lectus. Nulla dui nisi, lobortis quis fermentum non, ultricies nec diam. Sed tristique est et augue viverra, id porta ex dignissim. Curabitur finibus nisl id sem suscipit, ut rhoncus enim aliquam. Phasellus ac lorem sit amet massa bibendum posuere. In convallis efficitur cursus. Etiam justo sapien, bibendum ac arcu ut, accumsan mattis ipsum. Vestibulum a venenatis elit.";
 

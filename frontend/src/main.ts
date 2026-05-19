@@ -13,9 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Terminal } from "xterm";
-import { FitAddon } from "xterm-addon-fit";
-import "xterm/css/xterm.css";
+import { Terminal } from "@xterm/xterm";
+import { FitAddon } from "@xterm/addon-fit";
+import "@xterm/xterm/css/xterm.css";
 
 const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) throw new Error("App element not found");
@@ -50,6 +50,7 @@ ws.binaryType = "arraybuffer";
 
 ws.onopen = () => {
   console.log("Connected to TUI backend :yayayayayay:");
+  ws.send("browser-ready");
 };
 
 ws.onmessage = (event) => {

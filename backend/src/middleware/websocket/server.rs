@@ -1,89 +1,90 @@
-// Copyright (C) 2026 Lordseriouspig
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as
-// published by the Free Software Foundation, either version 3 of the
-// License, or (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-// 
-// You should have received a copy of the GNU Affero General Public License
-// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+/*
+ * Copyright (C) 2026 Lordseriouspig
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
+use crate::app::models::sessions::shared_sessions::SharedSessions;
 use axum::{
-    extract::ws::{Message, WebSocket, WebSocketUpgrade},
-    routing::get,
     Router,
+    extract::{
+        Json, Path, State,
+        ws::{Message, WebSocket, WebSocketUpgrade},
+    },
+    http::StatusCode,
+    response::IntoResponse,
+    routing::{get, post},
 };
-use std::net::SocketAddr;
-use std::sync::{Arc, Mutex};
+use serde::Serialize;
 use tokio::sync::broadcast;
-use tokio::sync::oneshot;
+use uuid::Uuid;
 
-pub async fn start_server(tx: broadcast::Sender<Vec<u8>>, ready_tx: oneshot::Sender<()>) {
-    let ready_tx = Arc::new(Mutex::new(Some(ready_tx)));
-    let socket = Router::new().route(
-        "/ws", 
-        get(move |ws: WebSocketUpgrade| {
-            let tx = tx.clone();
-            let ready_tx = ready_tx.clone();
-            async move {
-                ws.on_upgrade(move |socket| handle_socket(socket, tx.subscribe(), ready_tx))
-            }
-        }),
-    );
-
-    eprintln!("WebSocket server running");
-    let addr = SocketAddr::from(([0, 0, 0, 0], 4000));
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-
-    axum::serve(listener, socket).await.unwrap();
+#[derive(Serialize)]
+struct CreateSessionResponse {
+    session_id: String,
 }
 
-async fn handle_socket(
-    mut socket: WebSocket,
-    mut rx: broadcast::Receiver<Vec<u8>>,
-    ready_tx: Arc<Mutex<Option<oneshot::Sender<()>>>>,
-) {
-    let mut browser_ready = false;
+pub async fn start_server(sessions: SharedSessions) {
+    let app = Router::new()
+        .route("/api/session", post(create_session))
+        .route("/ws/{id}", get(ws_handler))
+        .with_state(sessions);
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:4000").await.unwrap();
+    println!(
+        "Server listening on port {}!",
+        listener.local_addr().unwrap()
+    );
+    axum::serve(listener, app).await.unwrap();
+}
 
+async fn create_session(State(sessions): State<SharedSessions>) -> Json<CreateSessionResponse> {
+    let mut sessions = sessions.write().await;
+    let id = sessions.create_session();
+    Json(CreateSessionResponse {
+        session_id: id.to_string(),
+    })
+}
+
+async fn ws_handler(
+    Path(id): Path<String>,
+    State(sessions): State<SharedSessions>,
+    ws: WebSocketUpgrade,
+) -> impl IntoResponse {
+    let id = match Uuid::parse_str(&id) {
+        Ok(id) => id,
+        Err(_) => return (StatusCode::BAD_REQUEST).into_response(),
+    };
+    let sessions = sessions.read().await;
+    let session = match sessions.get_session(&id) {
+        Some(session) => session,
+        None => return (StatusCode::NOT_FOUND).into_response(),
+    };
+    let rx = session.terminal_tx.subscribe();
+
+    ws.on_upgrade(move |socket| handle_socket(socket, rx))
+        .into_response()
+}
+
+async fn handle_socket(mut socket: WebSocket, mut rx: broadcast::Receiver<Vec<u8>>) {
     loop {
-        tokio::select! {
-            message = socket.recv() => {
-                match message {
-                    Some(Ok(Message::Text(text))) if text == "browser-ready" && !browser_ready => {
-                        browser_ready = true;
-                        if let Some(ready_tx) = ready_tx.lock().unwrap().take() {
-                            let _ = ready_tx.send(());
-                        }
-                    }
-                    Some(Ok(Message::Close(_))) | None => break,
-                    Some(Ok(_)) => {}
-                    Some(Err(_)) => break,
+        match rx.recv().await {
+            Ok(bytes) => {
+                if socket.send(Message::Binary(bytes.into())).await.is_err() {
+                    break;
                 }
             }
-            bytes = rx.recv() => {
-                match bytes {
-                    Ok(bytes) => {
-                        eprintln!("Received bytes: {:?}", bytes);
-                        if socket.send(Message::Binary(bytes.into())).await.is_err() {
-                            break;
-                        }
-                    }
-                    Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
-                        eprintln!("Client lagged, dropped {} messages", n);
-                        // skip and continue; don't tear down the websocket for slow clients
-                        continue;
-                    }
-                    Err(tokio::sync::broadcast::error::RecvError::Closed) => {
-                        eprintln!("Broadcast channel closed");
-                        break;
-                    }
-                }
-            }
+            Err(_) => break,
         }
     }
 }

@@ -15,30 +15,36 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use strum::{Display, EnumIter, FromRepr};
+use crate::app::models::state::App;
+use tokio::sync::{broadcast, mpsc};
+use uuid::Uuid;
 
-#[derive(Default, Clone)]
-pub struct App {
-    pub state: AppState,
-    pub selected_tab: SelectedTab,
+#[derive(Debug)]
+pub enum ClientInput {
+    Key(String),
+    Resize { cols: u16, rows: u16 },
 }
 
-#[derive(Default, Clone, Copy, PartialEq, Eq)]
-pub enum AppState {
-    #[default]
-    Running,
-    Quitting,
+pub struct Session {
+    pub id: Uuid,
+    pub app: App,
+    pub terminal_tx: broadcast::Sender<Vec<u8>>,
+
+    pub input_tx: mpsc::UnboundedSender<ClientInput>,
+    pub input_rx: mpsc::UnboundedReceiver<ClientInput>,
 }
 
-#[derive(Default, Clone, Copy, Display, FromRepr, EnumIter)]
-pub enum SelectedTab {
-    #[default]
-    #[strum(to_string = "Home")]
-    Home,
-    #[strum(to_string = "About")]
-    About,
-    #[strum(to_string = "Projects")]
-    Projects,
-    #[strum(to_string = "Contact")]
-    Contact,
+impl Session {
+    pub fn new(id: Uuid) -> Self {
+        let (tx, _rx) = broadcast::channel(100);
+        let (input_tx, input_rx) = mpsc::unbounded_channel();
+
+        Self {
+            id,
+            app: App::default(),
+            terminal_tx: tx,
+            input_tx,
+            input_rx,
+        }
+    }
 }

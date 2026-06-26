@@ -1,22 +1,24 @@
-// Copyright (C) 2026 Lordseriouspig
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as
-// published by the Free Software Foundation, either version 3 of the
-// License, or (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-// 
-// You should have received a copy of the GNU Affero General Public License
-// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+/*
+ * Copyright (C) 2026 Lordseriouspig
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 use color_eyre::Result;
 use ratatui::{
-    crossterm::event::{self, Event, KeyCode, KeyEventKind},
     Terminal,
+    crossterm::event::{self, Event, KeyCode, KeyEventKind},
 };
 
 use crate::app::models::state::{App, AppState};
@@ -30,14 +32,12 @@ impl App {
     }
 
     pub fn tick<B: ratatui::backend::Backend>(&mut self, terminal: &mut Terminal<B>) -> Result<()> {
-        if let Err(err) = terminal.draw(|frame| {
-            frame.render_widget(&*self, frame.area())
-        }) {
+        if let Err(err) = terminal.draw(|frame| frame.render_widget(&*self, frame.area())) {
             eprintln!("draw failed: {err}");
             self.quit();
             return Ok(());
         }
-
+        let _ = terminal.backend_mut().flush();
         if let Event::Key(key) = event::read()? {
             if key.kind == KeyEventKind::Press {
                 self.handle_input(Event::Key(key));

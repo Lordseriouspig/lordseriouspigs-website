@@ -11,4 +11,6 @@ ratatui = "0.30.0"
 strum = "0.27.2"
 tokio = {"version" = "1.52.0", features = ["full"]}
 axum = { version = "0.8", features = ["ws"] }
-tui-piechart = "0.3.1"
+#tui-piechart = "0.3.1"
+uuid = { version = "1.21.0", features = ["v4"] }
+serde = { version = "1.0.228", features = ["derive"] }

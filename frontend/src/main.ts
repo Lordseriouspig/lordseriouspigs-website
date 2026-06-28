@@ -19,6 +19,7 @@ import {Terminal} from "@xterm/xterm";
 import {FitAddon} from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
 
+// Setup stuff
 const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) throw new Error("App element not found");
 
@@ -33,7 +34,7 @@ termContainer.style.height = "100%";
 app.appendChild(termContainer);
 
 const term = new Terminal({
-  cursorBlink: true,
+    cursorBlink: false,
   convertEol: true,
 })
 
@@ -43,41 +44,65 @@ term.loadAddon(fitAddon);
 term.open(termContainer);
 fitAddon.fit();
 
-window.addEventListener("resize", () => {
-  fitAddon.fit();
-});
+// Try connect
+try {
+    const response =
+        await fetch(
+            "http://localhost:4000/api/session",
+            {
+                method: "POST",
+            }
+        );
+    if (!response.ok) {
+        term.clear()
+        term.writeln(`Unable to connect to the server - HTTP Error ${response.status}, ${response.statusText}`);
+        throw new Error(`HTTP Error ${response.status} on connect to session server.`)
+    }
+    const data =
+        await response.json();
+    const sessionId =
+        data.session_id;
 
-const response =
-    await fetch(
-        "http://localhost:4000/api/session",
-        {
-            method: "POST",
-        }
-    );
-const data =
-    await response.json();
-const sessionId =
-    data.session_id;
+    const ws = new WebSocket(`ws://localhost:4000/ws/${sessionId}`);
+    ws.binaryType = "arraybuffer";
 
-const ws = new WebSocket(`ws://localhost:4000/ws/${sessionId}`);
-ws.binaryType = "arraybuffer";
+    ws.onopen = () => {
+        console.log("Connected to TUI backend :yayayayayay:");
+    };
 
-ws.onopen = () => {
-    console.log("Connected to TUI backend :yayayayayay:");
-    ws.send("browser-ready");
-};
+    ws.onmessage = async (event) => {
+        const data = new Uint8Array(event.data);
+        term.write(data);
+    }
 
-ws.onmessage = async (event) => {
-    const data = new Uint8Array(event.data);
-    term.write(data);
-}
+    ws.onclose = () => {
+        term.clear()
+        console.warn(`Connection Closed`);
+        term.writeln(`Connection Closed`);
+    }
 
-ws.onclose = () => {
-    term.writeln("Connection closed");
-    console.log("Connection closed");
-}
+    ws.onerror = (error) => {
+        term.clear()
+        console.error(`WebSocket connection Error: ${error}`);
+        term.writeln(`Connection Error. Please refresh the page.`);
+    }
 
-ws.onerror = (error) => {
-    term.writeln("Connection error");
-    console.error("WebSocket error:", error);
+    window.addEventListener("resize", () => {
+        fitAddon.fit();
+    });
+
+    term.onKey((e) => {
+        let key = e.domEvent.key
+        if (!key) return;
+        const msg = {
+            type: "key",
+            key: key
+        };
+        ws.send(JSON.stringify(msg));
+        console.debug(`sent key event: ${JSON.stringify(msg)}`);
+    })
+} catch (e) {
+    term.clear()
+    console.error(`An error occurred: ${e}`);
+    term.writeln("An error occurred. Please check the console for more info.");
 }

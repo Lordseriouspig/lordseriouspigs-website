@@ -15,6 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::app::models::client_event::{ClientInput, ClientKey, WireInput};
 use crate::app::models::sessions::shared_sessions::SharedSessions;
 use axum::{
     Router,
@@ -28,6 +29,7 @@ use axum::{
 };
 use serde::Serialize;
 use tokio::sync::broadcast;
+use tokio::sync::mpsc::UnboundedSender;
 use uuid::Uuid;
 
 #[derive(Serialize)]
@@ -63,28 +65,72 @@ async fn ws_handler(
 ) -> impl IntoResponse {
     let id = match Uuid::parse_str(&id) {
         Ok(id) => id,
-        Err(_) => return (StatusCode::BAD_REQUEST).into_response(),
+        Err(_) => return StatusCode::BAD_REQUEST.into_response(),
     };
     let sessions = sessions.read().await;
     let session = match sessions.get_session(&id) {
         Some(session) => session,
-        None => return (StatusCode::NOT_FOUND).into_response(),
+        None => return StatusCode::NOT_FOUND.into_response(),
     };
-    let rx = session.terminal_tx.subscribe();
+    let rx = session.output_tx.subscribe();
+    let tx = session.input_tx.clone();
 
-    ws.on_upgrade(move |socket| handle_socket(socket, rx))
+    ws.on_upgrade(move |socket| handle_socket(socket, rx, tx))
         .into_response()
 }
 
-async fn handle_socket(mut socket: WebSocket, mut rx: broadcast::Receiver<Vec<u8>>) {
+async fn handle_socket(
+    mut socket: WebSocket,
+    mut rx: broadcast::Receiver<Vec<u8>>,
+    tx: UnboundedSender<ClientInput>,
+) {
     loop {
-        match rx.recv().await {
-            Ok(bytes) => {
+        tokio::select! {
+            // tx to client
+            Ok(bytes) = rx.recv() => {
                 if socket.send(Message::Binary(bytes.into())).await.is_err() {
                     break;
                 }
             }
-            Err(_) => break,
+
+            // rx from client
+            msg = socket.recv() => {
+                println!("Received message: {:?}", msg);
+                match msg {
+                    Some(Ok(Message::Text(text))) => {
+                        let text = text.to_string();
+                        if let Some(input) = parse_input(text) {
+                            println!("Sendy input: {:?}", input);
+                            let _ = tx.send(input);
+                        }
+                    }
+                    Some(Ok(Message::Binary(_))) => {println!("<binary message>")}
+                    Some(Err(_)) | None => break,
+                _ => {println!("Unhandled message: {:?}", msg);}}
+            }
         }
+    }
+}
+
+fn parse_input(text: String) -> Option<ClientInput> {
+    let msg: WireInput = serde_json::from_str(&text).ok()?;
+    println!("msg {:?}", msg);
+
+    match msg {
+        WireInput::Key { key } => {
+            let ck = match key.as_str() {
+                "Enter" => ClientKey::Enter,
+                "Escape" => ClientKey::Escape,
+                "ArrowLeft" => ClientKey::ArrowLeft,
+                "ArrowRight" => ClientKey::ArrowRight,
+                "Tab" => ClientKey::Tab,
+                c if c.len() == 1 => ClientKey::Char(c.chars().next().unwrap()),
+                _ => return None,
+            };
+
+            Some(ClientInput::Key(ck))
+        }
+
+        WireInput::Resize { cols, rows } => Some(ClientInput::Resize { cols, rows }),
     }
 }

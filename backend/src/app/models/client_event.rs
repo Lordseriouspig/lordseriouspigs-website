@@ -14,35 +14,27 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::app::models::sessions::session::{Session, SessionHandle};
-use std::collections::HashMap;
-use uuid::Uuid;
+use serde::Deserialize;
 
-pub struct SessionManager {
-    sessions: HashMap<Uuid, SessionHandle>,
+#[derive(Debug)]
+pub enum ClientInput {
+    Key(ClientKey),
+    Resize { cols: u16, rows: u16 },
 }
 
-impl SessionManager {
-    pub fn new() -> Self {
-        Self {
-            sessions: HashMap::new(),
-        }
-    }
+#[derive(Debug)]
+pub enum ClientKey {
+    Char(char),
+    Enter,
+    Escape,
+    ArrowLeft,
+    ArrowRight,
+    Tab,
+}
 
-    pub fn create_session(&mut self) -> Uuid {
-        let id = Uuid::new_v4();
-        let (session, handle) = Session::new(id);
-
-        self.sessions.insert(id, handle);
-
-        tokio::spawn(async move {
-            session.run().await;
-        });
-
-        id
-    }
-
-    pub fn get_session(&self, id: &Uuid) -> Option<&SessionHandle> {
-        self.sessions.get(id)
-    }
+#[derive(Debug, Deserialize)]
+#[serde(tag = "type", rename_all = "lowercase")]
+pub enum WireInput {
+    Key { key: String },
+    Resize { cols: u16, rows: u16 },
 }

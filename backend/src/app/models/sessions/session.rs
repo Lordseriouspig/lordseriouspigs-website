@@ -14,37 +14,46 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+use crate::app::models::client_event::ClientInput;
 use crate::app::models::state::App;
 use tokio::sync::{broadcast, mpsc};
 use uuid::Uuid;
 
-#[derive(Debug)]
-pub enum ClientInput {
-    Key(String),
-    Resize { cols: u16, rows: u16 },
-}
-
 pub struct Session {
     pub id: Uuid,
     pub app: App,
-    pub terminal_tx: broadcast::Sender<Vec<u8>>,
+    pub output_tx: broadcast::Sender<Vec<u8>>,
 
     pub input_tx: mpsc::UnboundedSender<ClientInput>,
     pub input_rx: mpsc::UnboundedReceiver<ClientInput>,
 }
 
+pub struct SessionHandle {
+    pub id: Uuid,
+    pub input_tx: mpsc::UnboundedSender<ClientInput>,
+    pub output_tx: broadcast::Sender<Vec<u8>>,
+}
+
 impl Session {
-    pub fn new(id: Uuid) -> Self {
-        let (tx, _rx) = broadcast::channel(100);
+    pub fn new(id: Uuid) -> (Self, SessionHandle) {
+        println!("Created new session with ID: {}", id);
+        let (output_tx, _) = broadcast::channel(100);
         let (input_tx, input_rx) = mpsc::unbounded_channel();
 
-        Self {
+        let session = Session {
             id,
             app: App::default(),
-            terminal_tx: tx,
-            input_tx,
+            input_tx: input_tx.clone(),
             input_rx,
-        }
+            output_tx: output_tx.clone(),
+        };
+
+        let handle = SessionHandle {
+            id,
+            input_tx,
+            output_tx,
+        };
+
+        (session, handle)
     }
 }

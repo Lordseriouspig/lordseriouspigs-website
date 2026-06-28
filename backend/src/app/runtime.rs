@@ -15,48 +15,76 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use color_eyre::Result;
-use ratatui::{
-    Terminal,
-    crossterm::event::{self, Event, KeyCode, KeyEventKind},
-};
-
+use crate::app::models::client_event::{ClientInput, ClientKey};
+use crate::app::models::sessions::session::Session;
 use crate::app::models::state::{App, AppState};
+use crate::middleware::websocket::writer::WsWriter;
+use color_eyre::Result;
+use ratatui::Terminal;
+use ratatui::backend::{Backend, CrosstermBackend};
+
+impl Session {
+    pub async fn run(mut self) {
+        println!("Running a new session");
+        // spawn an instance of a custom backend for crossterm
+        let writer = WsWriter {
+            tx: self.output_tx.clone(),
+            buffer: Vec::new(),
+        };
+
+        let backend = CrosstermBackend::new(writer);
+        let mut terminal = Terminal::new(backend).unwrap();
+
+        // Spawn the app
+        let mut app = self.app;
+
+        loop {
+            if app.state == AppState::Quitting {
+                break;
+            }
+            tokio::select! {
+                Some(input) = self.input_rx.recv() => {
+                    println!("Received input: {:?}", input);
+                    app.handle_input(input);
+                }
+                _ = tokio::time::sleep(tokio::time::Duration::from_millis(10)) => {
+                    let _ = app.render(&mut terminal);
+                }
+            }
+        }
+    }
+}
 
 impl App {
-    pub fn run<B: ratatui::backend::Backend>(mut self, mut terminal: Terminal<B>) -> Result<()> {
-        while self.state == AppState::Running {
-            self.tick(&mut terminal)?;
-        }
-        Ok(())
-    }
-
-    pub fn tick<B: ratatui::backend::Backend>(&mut self, terminal: &mut Terminal<B>) -> Result<()> {
+    pub fn render<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> Result<()> {
         if let Err(err) = terminal.draw(|frame| frame.render_widget(&*self, frame.area())) {
             eprintln!("draw failed: {err}");
             self.quit();
             return Ok(());
         }
         let _ = terminal.backend_mut().flush();
-        if let Event::Key(key) = event::read()? {
-            if key.kind == KeyEventKind::Press {
-                self.handle_input(Event::Key(key));
-            }
-        }
         Ok(())
     }
 
-    pub fn handle_input(&mut self, event: Event) {
-        if let Event::Key(key) = event {
-            if key.kind == KeyEventKind::Press {
-                match key.code {
-                    KeyCode::Char('l') | KeyCode::Right => self.next_tab(),
-                    KeyCode::Char('h') | KeyCode::Left => self.previous_tab(),
-                    KeyCode::Char('q') | KeyCode::Esc => self.quit(),
-                    _ => {}
-                }
-            }
+    pub fn handle_input(&mut self, input: ClientInput) {
+        println!("Received input: {:?}", input);
+        match input {
+            ClientInput::Key(k) => self.handle_key(k),
+            ClientInput::Resize { cols, rows } => self.handle_resize(cols, rows),
         }
+    }
+
+    pub fn handle_key(&mut self, key: ClientKey) {
+        match key {
+            ClientKey::Char('l') | ClientKey::ArrowRight => self.next_tab(),
+            ClientKey::Char('h') | ClientKey::ArrowLeft => self.previous_tab(),
+            ClientKey::Char('q') | ClientKey::Escape => self.quit(),
+            _ => {}
+        }
+    }
+
+    pub fn handle_resize(&mut self, cols: u16, rows: u16) {
+        todo!("Make this")
     }
 
     pub fn next_tab(&mut self) {

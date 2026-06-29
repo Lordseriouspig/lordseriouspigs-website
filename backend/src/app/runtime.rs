@@ -20,8 +20,9 @@ use crate::app::models::sessions::session::Session;
 use crate::app::models::state::{App, AppState};
 use crate::middleware::websocket::writer::WsWriter;
 use color_eyre::Result;
-use ratatui::Terminal;
 use ratatui::backend::{Backend, CrosstermBackend};
+use ratatui::layout::Rect;
+use ratatui::{Terminal, TerminalOptions, Viewport};
 
 impl Session {
     pub async fn run(mut self) {
@@ -32,8 +33,11 @@ impl Session {
             buffer: Vec::new(),
         };
 
+        let viewport = Viewport::Fixed(Rect::new(0, 0, 80, 24));
+        let options = TerminalOptions { viewport };
+
         let backend = CrosstermBackend::new(writer);
-        let mut terminal = Terminal::new(backend).unwrap();
+        let mut terminal = Terminal::with_options(backend, options).unwrap();
 
         // Spawn the app
         let mut app = self.app;
@@ -56,7 +60,10 @@ impl Session {
 
 impl App {
     pub fn render<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> Result<()> {
-        if let Err(err) = terminal.draw(|frame| frame.render_widget(&*self, self.area)) {
+        if let Some(change) = self.area_change.take() {
+            let _ = terminal.resize(change);
+        }
+        if let Err(err) = terminal.draw(|frame| frame.render_widget(&*self, frame.area())) {
             eprintln!("draw failed: {err}");
             self.quit();
             return Ok(());
@@ -83,7 +90,7 @@ impl App {
     }
 
     pub fn handle_resize(&mut self, cols: u16, rows: u16) {
-        self.area = ratatui::layout::Rect::new(0, 0, cols, rows);
+        self.area_change = Some(ratatui::layout::Rect::new(0, 0, cols, rows));
     }
 
     pub fn next_tab(&mut self) {

@@ -20,7 +20,7 @@ use strum::{Display, EnumIter, FromRepr};
 pub struct App {
     pub state: AppState,
     pub selected_tab: SelectedTab,
-    pub area: ratatui::layout::Rect,
+    pub area_change: Option<ratatui::layout::Rect>,
 }
 
 #[derive(Default, Clone, Copy, PartialEq, Eq)]

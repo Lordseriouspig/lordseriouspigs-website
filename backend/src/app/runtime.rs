@@ -57,7 +57,7 @@ impl Session {
 
 impl App {
     pub fn render<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> Result<()> {
-        if let Err(err) = terminal.draw(|frame| frame.render_widget(&*self, frame.area())) {
+        if let Err(err) = terminal.draw(|frame| frame.render_widget(&*self, self.area)) {
             eprintln!("draw failed: {err}");
             self.quit();
             return Ok(());
@@ -84,7 +84,7 @@ impl App {
     }
 
     pub fn handle_resize(&mut self, cols: u16, rows: u16) {
-        todo!("Make this")
+        self.area = ratatui::layout::Rect::new(0, 0, cols, rows);
     }
 
     pub fn next_tab(&mut self) {

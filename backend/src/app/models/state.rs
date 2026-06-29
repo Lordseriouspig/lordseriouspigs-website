@@ -14,13 +14,13 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 use strum::{Display, EnumIter, FromRepr};
 
 #[derive(Default, Clone)]
 pub struct App {
     pub state: AppState,
     pub selected_tab: SelectedTab,
+    pub area: ratatui::layout::Rect,
 }
 
 #[derive(Default, Clone, Copy, PartialEq, Eq)]

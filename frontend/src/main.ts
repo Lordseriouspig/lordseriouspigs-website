@@ -35,7 +35,7 @@ app.appendChild(termContainer);
 
 const term = new Terminal({
     cursorBlink: false,
-  convertEol: true,
+    convertEol: true,
 })
 
 const fitAddon = new FitAddon();
@@ -48,7 +48,7 @@ fitAddon.fit();
 try {
     const response =
         await fetch(
-            "http://localhost:4000/api/session",
+            "http://192.168.1.64:4000/api/session",
             {
                 method: "POST",
             }
@@ -63,11 +63,23 @@ try {
     const sessionId =
         data.session_id;
 
-    const ws = new WebSocket(`ws://localhost:4000/ws/${sessionId}`);
+    const ws = new WebSocket(`ws://192.168.1.64:4000/ws/${sessionId}`);
     ws.binaryType = "arraybuffer";
 
     ws.onopen = () => {
         console.log("Connected to TUI backend :yayayayayay:");
+
+        const cols = term.cols;
+        const rows = term.rows;
+
+        const msg = JSON.stringify({
+            type: "resize",
+            cols,
+            rows
+        });
+
+        console.debug(`sent initial resize event: ${msg}`);
+        ws.send(msg);
     };
 
     ws.onmessage = async (event) => {
@@ -89,17 +101,43 @@ try {
 
     window.addEventListener("resize", () => {
         fitAddon.fit();
+
+        const cols = term.cols;
+        const rows = term.rows;
+
+        const msg = JSON.stringify({
+            type: "resize",
+            cols,
+            rows
+        });
+
+        console.debug(`sent resize event: ${msg}`);
+        ws.send(msg);
     });
 
     term.onKey((e) => {
         let key = e.domEvent.key
         if (!key) return;
-        const msg = {
+        if (key == 'r') {
+            fitAddon.fit();
+            const cols = term.cols;
+            const rows = term.rows;
+
+            const msg = JSON.stringify({
+                type: "resize",
+                cols,
+                rows
+            });
+
+            console.log(`manually sent resize event: ${msg}`);
+            ws.send(msg);
+        }
+        const msg = JSON.stringify({
             type: "key",
             key: key
-        };
-        ws.send(JSON.stringify(msg));
-        console.debug(`sent key event: ${JSON.stringify(msg)}`);
+        });
+        ws.send(msg);
+        console.debug(`sent key event: ${msg}`);
     })
 } catch (e) {
     term.clear()

@@ -44,82 +44,44 @@ term.loadAddon(fitAddon);
 term.open(termContainer);
 fitAddon.fit();
 
+// Check for small screens
+let mobile_ack
+
+const url = new URL(window.location.href);
+const params = url.searchParams;
+let cols = term.cols;
+
+if (params.has("mobile_ack")) {
+    mobile_ack = true
+} else mobile_ack = cols > 86;
+
+
 // Try connect
-try {
-    const response =
-        await fetch(
-            "http://192.168.1.64:4000/api/session",
-            {
-                method: "POST",
-            }
-        );
-    if (!response.ok) {
-        term.clear()
-        term.writeln(`Unable to connect to the server - HTTP Error ${response.status}, ${response.statusText}`);
-        throw new Error(`HTTP Error ${response.status} on connect to session server.`)
-    }
-    const data =
-        await response.json();
-    const sessionId =
-        data.session_id;
+if (mobile_ack) {
+    try {
+        const response =
+            await fetch(
+                "http://192.168.1.64:4000/api/session",
+                {
+                    method: "POST",
+                }
+            );
+        if (!response.ok) {
+            term.clear()
+            term.writeln(`Unable to connect to the server - HTTP Error ${response.status}, ${response.statusText}`);
+            throw new Error(`HTTP Error ${response.status} on connect to session server.`)
+        }
+        const data =
+            await response.json();
+        const sessionId =
+            data.session_id;
 
-    const ws = new WebSocket(`ws://192.168.1.64:4000/ws/${sessionId}`);
-    ws.binaryType = "arraybuffer";
+        const ws = new WebSocket(`ws://192.168.1.64:4000/ws/${sessionId}`);
+        ws.binaryType = "arraybuffer";
 
-    ws.onopen = () => {
-        console.log("Connected to TUI backend :yayayayayay:");
+        ws.onopen = () => {
+            console.log("Connected to TUI backend :yayayayayay:");
 
-        const cols = term.cols;
-        const rows = term.rows;
-
-        const msg = JSON.stringify({
-            type: "resize",
-            cols,
-            rows
-        });
-
-        console.debug(`sent initial resize event: ${msg}`);
-        ws.send(msg);
-    };
-
-    ws.onmessage = async (event) => {
-        const data = new Uint8Array(event.data);
-        term.write(data);
-    }
-
-    ws.onclose = () => {
-        term.clear()
-        console.warn(`Connection Closed`);
-        term.writeln(`Connection Closed`);
-    }
-
-    ws.onerror = (error) => {
-        term.clear()
-        console.error(`WebSocket connection Error: ${error}`);
-        term.writeln(`Connection Error. Please refresh the page.`);
-    }
-
-    window.addEventListener("resize", () => {
-        fitAddon.fit();
-
-        const cols = term.cols;
-        const rows = term.rows;
-
-        const msg = JSON.stringify({
-            type: "resize",
-            cols,
-            rows
-        });
-
-        console.debug(`sent resize event: ${msg}`);
-        ws.send(msg);
-    });
-
-    term.onKey((e) => {
-        let key = e.domEvent.key
-        if (!key) return;
-        if (key == 'r') {
-            fitAddon.fit();
             const cols = term.cols;
             const rows = term.rows;
 
@@ -129,18 +91,81 @@ try {
                 rows
             });
 
-            console.log(`manually sent resize event: ${msg}`);
+            console.debug(`sent initial resize event: ${msg}`);
             ws.send(msg);
+        };
+
+        ws.onmessage = async (event) => {
+            const data = new Uint8Array(event.data);
+            term.write(data);
         }
-        const msg = JSON.stringify({
-            type: "key",
-            key: key
+
+        ws.onclose = () => {
+            term.clear()
+            console.warn(`Connection Closed`);
+            term.writeln(`Connection Closed`);
+        }
+
+        ws.onerror = (error) => {
+            term.clear()
+            console.error(`WebSocket connection Error: ${error}`);
+            term.writeln(`Connection Error. Please refresh the page.`);
+        }
+
+        window.addEventListener("resize", () => {
+            fitAddon.fit();
+
+            const cols = term.cols;
+            const rows = term.rows;
+
+            const msg = JSON.stringify({
+                type: "resize",
+                cols,
+                rows
+            });
+
+            console.debug(`sent resize event: ${msg}`);
+            ws.send(msg);
         });
-        ws.send(msg);
-        console.debug(`sent key event: ${msg}`);
+
+        term.onKey((e) => {
+            let key = e.domEvent.key
+            if (!key) return;
+            if (key == 'r') {
+                fitAddon.fit();
+                const cols = term.cols;
+                const rows = term.rows;
+
+                const msg = JSON.stringify({
+                    type: "resize",
+                    cols,
+                    rows
+                });
+
+                console.log(`manually sent resize event: ${msg}`);
+                ws.send(msg);
+            }
+            const msg = JSON.stringify({
+                type: "key",
+                key: key
+            });
+            ws.send(msg);
+            console.debug(`sent key event: ${msg}`);
+        })
+    } catch (e) {
+        term.clear()
+        console.error(`An error occurred: ${e}`);
+        term.writeln("An error occurred. Please check the console for more info.");
+    }
+} else {
+    term.writeln("Small screen detected!")
+    term.writeln("This app does not support mobile devices or devices with small screens. It may not work well without a hardware keyboard, and some UI elements may not render properly")
+    term.writeln("Press any key to continue...")
+    term.writeln("\x1b[3mHint: You may use \"h\" and \"l\" as replacements for the left and right keys respectively!\x1b[0m")
+
+    term.onData(_ => {
+        const url = new URL(window.location.href);
+        url.searchParams.set("mobile_ack", "true");
+        window.location.href = url.toString();
     })
-} catch (e) {
-    term.clear()
-    console.error(`An error occurred: ${e}`);
-    term.writeln("An error occurred. Please check the console for more info.");
 }

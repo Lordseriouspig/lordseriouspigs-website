@@ -100,7 +100,6 @@ async fn handle_socket(
                     Some(Ok(Message::Text(text))) => {
                         let text = text.to_string();
                         if let Some(input) = parse_input(text) {
-                            println!("Sendy input: {:?}", input);
                             let _ = tx.send(input);
                         }
                     }
@@ -114,7 +113,6 @@ async fn handle_socket(
 
 fn parse_input(text: String) -> Option<ClientInput> {
     let msg: WireInput = serde_json::from_str(&text).ok()?;
-    println!("msg {:?}", msg);
 
     match msg {
         WireInput::Key { key } => {

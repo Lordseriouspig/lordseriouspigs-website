@@ -44,7 +44,6 @@ impl Session {
             }
             tokio::select! {
                 Some(input) = self.input_rx.recv() => {
-                    println!("Received input: {:?}", input);
                     app.handle_input(input);
                 }
                 _ = tokio::time::sleep(tokio::time::Duration::from_millis(10)) => {

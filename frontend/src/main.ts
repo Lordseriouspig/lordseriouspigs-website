@@ -83,6 +83,7 @@ if (mobile_ack) {
 
         ws.onopen = () => {
             console.log("Connected to TUI backend :yayayayayay:");
+            ws.send(JSON.stringify({type: "ready"}));
 
             const cols = term.cols;
             const rows = term.rows;

@@ -50,6 +50,9 @@ impl Session {
                     app.handle_input(input);
                 }
                 _ = tokio::time::sleep(tokio::time::Duration::from_millis(10)) => {
+                    if app.state == AppState::NotReady {
+                        continue;
+                    }
                     app.render(&mut terminal)?;
                 }
             }
@@ -80,6 +83,7 @@ impl App {
             ClientInput::Key(k) => self.handle_key(k),
             ClientInput::Resize { cols, rows } => self.handle_resize(cols, rows),
             ClientInput::Disconnect => self.quit(),
+            ClientInput::Ready => self.state = AppState::Running,
         }
     }
 

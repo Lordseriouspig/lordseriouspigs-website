@@ -26,6 +26,7 @@ pub struct App {
 #[derive(Default, Clone, Copy, PartialEq, Eq)]
 pub enum AppState {
     #[default]
+    NotReady,
     Running,
     Quitting,
 }

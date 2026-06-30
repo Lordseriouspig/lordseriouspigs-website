@@ -21,6 +21,7 @@ pub enum ClientInput {
     Key(ClientKey),
     Resize { cols: u16, rows: u16 },
     Disconnect,
+    Ready,
 }
 
 #[derive(Debug)]
@@ -38,4 +39,5 @@ pub enum ClientKey {
 pub enum WireInput {
     Key { key: String },
     Resize { cols: u16, rows: u16 },
+    Ready,
 }

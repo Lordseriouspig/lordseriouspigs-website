@@ -164,5 +164,6 @@ fn parse_input(text: &String) -> Option<ClientInput> {
         }
 
         WireInput::Resize { cols, rows } => Some(ClientInput::Resize { cols, rows }),
+        WireInput::Ready => Some(ClientInput::Ready),
     }
 }

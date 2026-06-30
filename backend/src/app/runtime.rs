@@ -26,7 +26,6 @@ use ratatui::{Terminal, TerminalOptions, Viewport};
 
 impl Session {
     pub async fn run(mut self) {
-        println!("Running a new session");
         // spawn an instance of a custom backend for crossterm
         let writer = WsWriter {
             tx: self.output_tx.clone(),
@@ -73,7 +72,6 @@ impl App {
     }
 
     pub fn handle_input(&mut self, input: ClientInput) {
-        println!("Received input: {:?}", input);
         match input {
             ClientInput::Key(k) => self.handle_key(k),
             ClientInput::Resize { cols, rows } => self.handle_resize(cols, rows),

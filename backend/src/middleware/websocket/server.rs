@@ -96,7 +96,6 @@ async fn handle_socket(
 
             // rx from client
             msg = socket.recv() => {
-                println!("Received message: {:?}", msg);
                 match msg {
                     Some(Ok(Message::Text(text))) => {
                         let text = text.to_string();
@@ -104,9 +103,10 @@ async fn handle_socket(
                             let _ = tx.send(input);
                         }
                     }
-                    Some(Ok(Message::Binary(_))) => {println!("<binary message>")}
+                    Some(Ok(Message::Binary(_))) => {}
                     Some(Err(_)) | None => break,
-                _ => {println!("Unhandled message: {:?}", msg);}}
+                _ => {}
+                }
             }
         }
     }

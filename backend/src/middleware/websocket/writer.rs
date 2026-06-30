@@ -38,7 +38,6 @@ impl Write for WsWriter {
                 // there's nothing more permanent than a temporary solution
                 return Ok(()); // drops frames that is just spammed for no reason and I cant be bothered to figure out why. its only really needed for consoles anyways
             }
-            eprintln!("Flushed {} bytes", frame.len());
             let _ = self.tx.send(frame);
         }
         Ok(())

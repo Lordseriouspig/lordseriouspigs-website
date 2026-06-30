@@ -77,6 +77,7 @@ impl App {
         match input {
             ClientInput::Key(k) => self.handle_key(k),
             ClientInput::Resize { cols, rows } => self.handle_resize(cols, rows),
+            ClientInput::Disconnect => self.quit(),
         }
     }
 

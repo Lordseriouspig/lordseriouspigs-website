@@ -51,8 +51,9 @@ pub async fn start_server(sessions: SharedSessions) {
 }
 
 async fn create_session(State(sessions): State<SharedSessions>) -> Json<CreateSessionResponse> {
-    let mut sessions = sessions.write().await;
-    let id = sessions.create_session();
+    let shared = sessions.clone();
+    let mut manager = sessions.write().await;
+    let id = manager.create_session(shared);
     Json(CreateSessionResponse {
         session_id: id.to_string(),
     })
@@ -109,6 +110,7 @@ async fn handle_socket(
             }
         }
     }
+    tx.send(ClientInput::Disconnect).unwrap();
 }
 
 fn parse_input(text: String) -> Option<ClientInput> {

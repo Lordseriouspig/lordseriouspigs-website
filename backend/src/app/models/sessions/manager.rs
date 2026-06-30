@@ -15,6 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 use crate::app::models::sessions::session::{Session, SessionHandle};
+use crate::app::models::sessions::shared_sessions::SharedSessions;
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -29,7 +30,7 @@ impl SessionManager {
         }
     }
 
-    pub fn create_session(&mut self) -> Uuid {
+    pub fn create_session(&mut self, shared: SharedSessions) -> Uuid {
         let id = Uuid::new_v4();
         let (session, handle) = Session::new(id);
 
@@ -37,6 +38,10 @@ impl SessionManager {
 
         tokio::spawn(async move {
             session.run().await;
+            println!("Destroying session {}", id);
+
+            let mut sessions = shared.write().await;
+            sessions.destroy_session(&id);
         });
 
         id
@@ -44,5 +49,9 @@ impl SessionManager {
 
     pub fn get_session(&self, id: &Uuid) -> Option<&SessionHandle> {
         self.sessions.get(id)
+    }
+
+    pub fn destroy_session(&mut self, id: &Uuid) {
+        self.sessions.remove(id);
     }
 }

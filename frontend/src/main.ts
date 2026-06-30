@@ -67,8 +67,10 @@ if (mobile_ack) {
                 }
             );
         if (!response.ok) {
+            term.reset()
             term.clear()
             term.writeln(`Unable to connect to the server - HTTP Error ${response.status}, ${response.statusText}`);
+            //noinspection ExceptionCaughtLocallyJS
             throw new Error(`HTTP Error ${response.status} on connect to session server.`)
         }
         const data =
@@ -101,12 +103,14 @@ if (mobile_ack) {
         }
 
         ws.onclose = () => {
+            term.reset()
             term.clear()
             console.warn(`Connection Closed`);
             term.writeln(`Connection Closed`);
         }
 
         ws.onerror = (error) => {
+            term.reset()
             term.clear()
             console.error(`WebSocket connection Error: ${error}`);
             term.writeln(`Connection Error. Please refresh the page.`);
@@ -131,28 +135,35 @@ if (mobile_ack) {
         term.onKey((e) => {
             let key = e.domEvent.key
             if (!key) return;
-            if (key == 'r') {
-                fitAddon.fit();
-                const cols = term.cols;
-                const rows = term.rows;
+            switch (key) {
+                case "r":
+                    fitAddon.fit();
+                    const cols = term.cols;
+                    const rows = term.rows;
 
-                const msg = JSON.stringify({
-                    type: "resize",
-                    cols,
-                    rows
-                });
+                    const r_msg = JSON.stringify({
+                        type: "resize",
+                        cols,
+                        rows
+                    });
 
-                console.log(`manually sent resize event: ${msg}`);
-                ws.send(msg);
+                    console.log(`manually sent resize event: ${r_msg}`);
+                    ws.send(r_msg);
+                    break;
+                case "q":
+                    ws.close();
+                    break;
+                default:
+                    const msg = JSON.stringify({
+                        type: "key",
+                        key: key
+                    });
+                    ws.send(msg);
+                    console.debug(`sent key event: ${msg}`);
             }
-            const msg = JSON.stringify({
-                type: "key",
-                key: key
-            });
-            ws.send(msg);
-            console.debug(`sent key event: ${msg}`);
         })
     } catch (e) {
+        term.reset()
         term.clear()
         console.error(`An error occurred: ${e}`);
         term.writeln("An error occurred. Please check the console for more info.");

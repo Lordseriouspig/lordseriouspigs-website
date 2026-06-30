@@ -20,6 +20,7 @@ use serde::Deserialize;
 pub enum ClientInput {
     Key(ClientKey),
     Resize { cols: u16, rows: u16 },
+    Disconnect,
 }
 
 #[derive(Debug)]

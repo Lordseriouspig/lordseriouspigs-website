@@ -27,6 +27,7 @@ use axum::{
     response::IntoResponse,
     routing::{get, post},
 };
+use color_eyre::Result;
 use serde::Serialize;
 use tokio::sync::broadcast;
 use tokio::sync::mpsc::UnboundedSender;
@@ -37,20 +38,19 @@ struct CreateSessionResponse {
     session_id: String,
 }
 
-pub async fn start_server(sessions: SharedSessions) {
+pub async fn start_server(sessions: SharedSessions) -> Result<()> {
     let app = Router::new()
         .route("/api/session", post(create_session))
         .route("/ws/{id}", get(ws_handler))
         .with_state(sessions);
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:4000").await.unwrap();
-    println!(
-        "Server listening on port {}!",
-        listener.local_addr().unwrap()
-    );
-    axum::serve(listener, app).await.unwrap();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:4000").await?;
+    tracing::info!(address = %listener.local_addr()?, "Server listening!!");
+    axum::serve(listener, app).await?;
+    Ok(())
 }
 
 async fn create_session(State(sessions): State<SharedSessions>) -> Json<CreateSessionResponse> {
+    tracing::debug!("POST /api/session");
     let shared = sessions.clone();
     let mut manager = sessions.write().await;
     let id = manager.create_session(shared);
@@ -68,6 +68,7 @@ async fn ws_handler(
         Ok(id) => id,
         Err(_) => return StatusCode::BAD_REQUEST.into_response(),
     };
+    tracing::debug!(id = ?id, "GET /ws/{id}");
     let sessions = sessions.read().await;
     let session = match sessions.get_session(&id) {
         Some(session) => session,
@@ -85,35 +86,66 @@ async fn handle_socket(
     mut rx: broadcast::Receiver<Vec<u8>>,
     tx: UnboundedSender<ClientInput>,
 ) {
+    tracing::debug!("ws upgrade");
     loop {
         tokio::select! {
             // tx to client
             Ok(bytes) = rx.recv() => {
+                tracing::trace!(msg = ?bytes, "tx to client");
                 if socket.send(Message::Binary(bytes.into())).await.is_err() {
+                    tracing::warn!("Error sending client message");
                     break;
                 }
             }
 
             // rx from client
             msg = socket.recv() => {
+                tracing::trace!(msg = ?msg, "rx from client");
                 match msg {
                     Some(Ok(Message::Text(text))) => {
                         let text = text.to_string();
-                        if let Some(input) = parse_input(text) {
-                            let _ = tx.send(input);
+                        match parse_input(&text) {
+                            Some(input) => {
+                                if let Err(err) = tx.send(input) {
+                                    tracing::warn!(%err, "Error forwarding client input");
+                                    break;
+                                };
+                            }
+
+                            None => {
+                                tracing::warn!(message = %text, "Invalid client message");
+                            }
                         }
                     }
-                    Some(Ok(Message::Binary(_))) => {}
-                    Some(Err(_)) | None => break,
-                _ => {}
+                    Some(Ok(Message::Binary(_))) => {
+                        tracing::debug!("Ignoring binary message");
+                    }
+                    Some(Ok(Message::Close(_))) => {
+                        tracing::info!("Client requested close");
+                        break;
+                    }
+                    Some(Err(err)) => {
+                        tracing::warn!(%err, "Websocket error");
+                        break;
+                    }
+                    None => {
+                        tracing::info!("Websocket stream ended");
+                        break;
+                    }
+                    _ => {
+                        tracing::debug!("Ignoring unknown websocket message");
+                    }
                 }
             }
         }
     }
-    tx.send(ClientInput::Disconnect).unwrap();
+    tracing::debug!("ws disconnect");
+    if let Err(err) = tx.send(ClientInput::Disconnect) {
+        tracing::warn!(%err, "Error sending disconnect message");
+    };
 }
 
-fn parse_input(text: String) -> Option<ClientInput> {
+fn parse_input(text: &String) -> Option<ClientInput> {
     let msg: WireInput = serde_json::from_str(&text).ok()?;
 
     match msg {

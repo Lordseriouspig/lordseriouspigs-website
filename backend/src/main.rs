@@ -30,9 +30,13 @@ use crate::middleware::websocket::server::start_server;
 async fn main() -> Result<()> {
     color_eyre::install()?;
 
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::DEBUG)
+        .init();
+
     let sessions = Arc::new(RwLock::new(SessionManager::new()));
 
-    start_server(sessions).await;
+    start_server(sessions).await?;
 
     Ok(())
 }

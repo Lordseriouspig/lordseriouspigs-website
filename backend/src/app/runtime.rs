@@ -25,7 +25,7 @@ use ratatui::layout::Rect;
 use ratatui::{Terminal, TerminalOptions, Viewport};
 
 impl Session {
-    pub async fn run(mut self) {
+    pub async fn run(mut self) -> Result<()> {
         // spawn an instance of a custom backend for crossterm
         let writer = WsWriter {
             tx: self.output_tx.clone(),
@@ -36,7 +36,7 @@ impl Session {
         let options = TerminalOptions { viewport };
 
         let backend = CrosstermBackend::new(writer);
-        let mut terminal = Terminal::with_options(backend, options).unwrap();
+        let mut terminal = Terminal::with_options(backend, options)?;
 
         // Spawn the app
         let mut app = self.app;
@@ -50,28 +50,32 @@ impl Session {
                     app.handle_input(input);
                 }
                 _ = tokio::time::sleep(tokio::time::Duration::from_millis(10)) => {
-                    let _ = app.render(&mut terminal);
+                    app.render(&mut terminal)?;
                 }
             }
         }
+        Ok(())
     }
 }
 
 impl App {
     pub fn render<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> Result<()> {
         if let Some(change) = self.area_change.take() {
-            let _ = terminal.resize(change);
-        }
+            if let Err(err) = terminal.resize(change) {
+                tracing::warn!(%err, "Couldn't resize terminal");
+            };
+        };
         if let Err(err) = terminal.draw(|frame| frame.render_widget(&*self, frame.area())) {
-            eprintln!("draw failed: {err}");
-            self.quit();
-            return Ok(());
-        }
-        let _ = terminal.backend_mut().flush();
+            tracing::warn!(%err, "Couldn't render terminal");
+        };
+        if let Err(err) = terminal.backend_mut().flush() {
+            tracing::warn!(%err, "Couldn't flush terminal");
+        };
         Ok(())
     }
 
     pub fn handle_input(&mut self, input: ClientInput) {
+        tracing::debug!(?input, "Handling input");
         match input {
             ClientInput::Key(k) => self.handle_key(k),
             ClientInput::Resize { cols, rows } => self.handle_resize(cols, rows),
@@ -80,6 +84,7 @@ impl App {
     }
 
     pub fn handle_key(&mut self, key: ClientKey) {
+        tracing::debug!(?key, "Handling key");
         match key {
             ClientKey::Char('l') | ClientKey::ArrowRight => self.next_tab(),
             ClientKey::Char('h') | ClientKey::ArrowLeft => self.previous_tab(),
@@ -89,18 +94,22 @@ impl App {
     }
 
     pub fn handle_resize(&mut self, cols: u16, rows: u16) {
+        tracing::debug!(cols, rows, "Terminal resized");
         self.area_change = Some(ratatui::layout::Rect::new(0, 0, cols, rows));
     }
 
     pub fn next_tab(&mut self) {
+        tracing::debug!("Next tab");
         self.selected_tab = self.selected_tab.next();
     }
 
     pub fn previous_tab(&mut self) {
+        tracing::debug!("Previous tab");
         self.selected_tab = self.selected_tab.previous();
     }
 
     pub fn quit(&mut self) {
+        tracing::debug!("Quitting");
         self.state = AppState::Quitting;
     }
 }

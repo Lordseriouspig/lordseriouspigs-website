@@ -17,6 +17,7 @@
 use crate::app::models::sessions::session::{Session, SessionHandle};
 use crate::app::models::sessions::shared_sessions::SharedSessions;
 use std::collections::HashMap;
+use tracing::Instrument;
 use uuid::Uuid;
 
 pub struct SessionManager {
@@ -34,15 +35,21 @@ impl SessionManager {
         let id = Uuid::new_v4();
         let (session, handle) = Session::new(id);
 
+        tracing::info!(%id, "Creating session");
         self.sessions.insert(id, handle);
 
-        tokio::spawn(async move {
-            session.run().await;
-            println!("Destroying session {}", id);
+        tokio::spawn(
+            async move {
+                if let Err(err) = session.run().await {
+                    tracing::error!(%err, "Session exited with error")
+                };
+                tracing::info!("Destroying session");
 
-            let mut sessions = shared.write().await;
-            sessions.destroy_session(&id);
-        });
+                let mut sessions = shared.write().await;
+                sessions.destroy_session(&id);
+            }
+            .instrument(tracing::info_span!("session", session_id = %id)),
+        );
 
         id
     }

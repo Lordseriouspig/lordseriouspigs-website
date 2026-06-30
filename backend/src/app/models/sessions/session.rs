@@ -36,7 +36,6 @@ pub struct SessionHandle {
 
 impl Session {
     pub fn new(id: Uuid) -> (Self, SessionHandle) {
-        tracing::info!("Created new session");
         let (output_tx, _) = broadcast::channel(100);
         let (input_tx, input_rx) = mpsc::unbounded_channel();
 

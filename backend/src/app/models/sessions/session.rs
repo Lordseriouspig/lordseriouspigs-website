@@ -36,7 +36,7 @@ pub struct SessionHandle {
 
 impl Session {
     pub fn new(id: Uuid) -> (Self, SessionHandle) {
-        let (output_tx, _) = broadcast::channel(100);
+        let (output_tx, _) = broadcast::channel(200);
         let (input_tx, input_rx) = mpsc::unbounded_channel();
 
         let session = Session {

@@ -38,7 +38,7 @@ impl Write for WsWriter {
                 // there's nothing more permanent than a temporary solution
                 return Ok(()); // drops frames that is just spammed for no reason and I cant be bothered to figure out why. its only really needed for consoles anyways
             }
-            tracing::trace!(frame = ?frame, len = frame.len(), "flushing frame");
+            tracing::trace!(len = frame.len(), "flushing frame");
             let _ = self.tx.send(frame);
         }
         Ok(())

@@ -31,6 +31,7 @@ use color_eyre::Result;
 use serde::Serialize;
 use tokio::sync::broadcast;
 use tokio::sync::mpsc::UnboundedSender;
+use tracing::{Instrument, info_span};
 use uuid::Uuid;
 
 #[derive(Serialize)]
@@ -77,8 +78,10 @@ async fn ws_handler(
     let rx = session.output_tx.subscribe();
     let tx = session.input_tx.clone();
 
-    ws.on_upgrade(move |socket| handle_socket(socket, rx, tx))
-        .into_response()
+    ws.on_upgrade(move |socket| {
+        handle_socket(socket, rx, tx).instrument(info_span!("socket", session_id = %id))
+    })
+    .into_response()
 }
 
 async fn handle_socket(
@@ -90,11 +93,22 @@ async fn handle_socket(
     loop {
         tokio::select! {
             // tx to client
-            Ok(bytes) = rx.recv() => {
-                tracing::trace!(msg = ?bytes, "tx to client");
-                if socket.send(Message::Binary(bytes.into())).await.is_err() {
-                    tracing::warn!("Error sending client message");
-                    break;
+            result = rx.recv() => {
+                match result {
+                    Ok(bytes) => {
+                        tracing::trace!(msg = ?bytes, "tx to client");
+                        if let Err(e) = socket.send(Message::Binary(bytes.into())).await {
+                            tracing::warn!(error = %e, "Error sending client message");
+                            break;
+                        }
+                    }
+                    Err(broadcast::error::RecvError::Lagged(n)) => {
+                        tracing::warn!(messages = n, "Broadcast receiver lagged");
+                    }
+                    Err(broadcast::error::RecvError::Closed) => {
+                        tracing::error!("Broadcast channel closed");
+                        break;
+                    }
                 }
             }
 

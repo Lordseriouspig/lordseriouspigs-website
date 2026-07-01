@@ -100,6 +100,7 @@ if (mobile_ack) {
 
         ws.onmessage = async (event) => {
             const data = new Uint8Array(event.data);
+            console.debug(`Received message from server: ${data.length}`);
             term.write(data);
         }
 

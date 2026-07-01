@@ -99,7 +99,7 @@ impl App {
 
     pub fn handle_resize(&mut self, cols: u16, rows: u16) {
         tracing::debug!(cols, rows, "Terminal resized");
-        self.area_change = Some(ratatui::layout::Rect::new(0, 0, cols, rows));
+        self.area_change = Some(Rect::new(0, 0, cols, rows));
     }
 
     pub fn next_tab(&mut self) {

@@ -27,6 +27,7 @@ use axum::{
     response::IntoResponse,
     routing::{get, post},
 };
+use axum_governor::{GovernorConfigBuilder, GovernorLayer, Quota, extractor::PeerIp, nz};
 use color_eyre::Result;
 use serde::Serialize;
 use tokio::sync::broadcast;
@@ -40,10 +41,16 @@ struct CreateSessionResponse {
 }
 
 pub async fn start_server(sessions: SharedSessions) -> Result<()> {
-    let app = Router::new()
-        .route("/api/session", post(create_session))
+    let cfg = GovernorConfigBuilder::default()
+        .with_extractor(PeerIp::default())
+        .expect_connect_info()
+        .quota_default(Quota::requests_per_minute(nz!(10u32)))
+        .finish()?;
+    let api = Router::new()
+        .route("/session", post(create_session))
         .route("/ws/{id}", get(ws_handler))
-        .with_state(sessions);
+        .layer(GovernorLayer::new(cfg));
+    let app = Router::new().nest("/api", api).with_state(sessions);
     let listener = tokio::net::TcpListener::bind("0.0.0.0:4000").await?;
     tracing::info!(address = %listener.local_addr()?, "Server listening!!");
     axum::serve(listener, app).await?;
@@ -69,7 +76,7 @@ async fn ws_handler(
         Ok(id) => id,
         Err(_) => return StatusCode::BAD_REQUEST.into_response(),
     };
-    tracing::debug!(id = ?id, "GET /ws/{id}");
+    tracing::debug!(id = ?id, "GET /api/ws/{id}");
     let sessions = sessions.read().await;
     let session = match sessions.get_session(&id) {
         Some(session) => session,

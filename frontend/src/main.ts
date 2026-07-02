@@ -79,7 +79,7 @@ if (mobile_ack) {
         const sessionId =
             data.session_id;
 
-        const ws = new WebSocket(`ws://192.168.1.64:4000/ws/${sessionId}`);
+        const ws = new WebSocket(`ws://192.168.1.64:4000/api/ws/${sessionId}`);
         ws.binaryType = "arraybuffer";
 
         ws.onopen = () => {

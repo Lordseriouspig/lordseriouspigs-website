@@ -166,6 +166,7 @@ dependencies = [
  "catppuccin",
  "color-eyre",
  "dotenvy",
+ "ipnet",
  "ratatui",
  "reqwest",
  "serde",

@@ -26,8 +26,9 @@ use axum::{
     response::IntoResponse,
     routing::{get, post},
 };
-use axum_governor::{GovernorConfigBuilder, GovernorLayer, Quota, extractor::PeerIp, nz};
+use axum_governor::{GovernorConfigBuilder, GovernorLayer, Quota, extractor::SmartIp, nz};
 use color_eyre::Result;
+use ipnet::IpNet;
 use serde::Serialize;
 use std::net::SocketAddr;
 use std::time::Duration;
@@ -44,7 +45,10 @@ struct CreateSessionResponse {
 
 pub async fn start_server(sessions: SharedSessions) -> Result<()> {
     let cfg = GovernorConfigBuilder::default()
-        .with_extractor(PeerIp::default())
+        .with_extractor(SmartIp::new().with_trusted_proxies(vec![
+            "127.0.0.1/32".parse::<IpNet>().unwrap(),
+            "::1/128".parse::<IpNet>().unwrap(),
+        ]))
         .expect_connect_info()
         .quota_default(Quota::requests_per_minute(nz!(10u32)))
         .finish()?;

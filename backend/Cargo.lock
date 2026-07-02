@@ -143,18 +143,18 @@ version = "2.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "70d6071e3268801e665213b22b0e08c5f10238fe277d304831f22699d1fa7181"
 dependencies = [
-    "axum",
-    "dashmap",
-    "forwarded-header-value",
-    "governor",
-    "http",
-    "ipnet",
-    "nonzero_ext",
-    "pin-project-lite",
-    "serde_json",
-    "tokio",
-    "tower",
-    "tracing",
+ "axum",
+ "dashmap",
+ "forwarded-header-value",
+ "governor",
+ "http",
+ "ipnet",
+ "nonzero_ext",
+ "pin-project-lite",
+ "serde_json",
+ "tokio",
+ "tower",
+ "tracing",
 ]
 
 [[package]]
@@ -162,7 +162,7 @@ name = "backend"
 version = "0.1.0"
 dependencies = [
  "axum",
-    "axum-governor",
+ "axum-governor",
  "catppuccin",
  "color-eyre",
  "dotenvy",
@@ -499,12 +499,12 @@ version = "6.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6361d5c062261c78a176addb82d4c821ae42bed6089de0e12603cd25de2059c"
 dependencies = [
-    "cfg-if",
-    "crossbeam-utils",
-    "hashbrown 0.14.5",
-    "lock_api",
-    "once_cell",
-    "parking_lot_core",
+ "cfg-if",
+ "crossbeam-utils",
+ "hashbrown 0.14.5",
+ "lock_api",
+ "once_cell",
+ "parking_lot_core",
 ]
 
 [[package]]
@@ -714,8 +714,8 @@ version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8835f84f38484cc86f110a805655697908257fb9a7af005234060891557198e9"
 dependencies = [
-    "nonempty",
-    "thiserror 1.0.69",
+ "nonempty",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -880,18 +880,18 @@ version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9efcab3c1958580ff1f25a2a41be1668f7603d849bb63af523b208a3cc1223b8"
 dependencies = [
-    "cfg-if",
-    "dashmap",
-    "futures-sink",
-    "futures-timer",
-    "futures-util",
-    "hashbrown 0.16.1",
-    "nonzero_ext",
-    "parking_lot",
-    "portable-atomic",
-    "smallvec",
-    "spinning_top",
-    "web-time",
+ "cfg-if",
+ "dashmap",
+ "futures-sink",
+ "futures-timer",
+ "futures-util",
+ "hashbrown 0.16.1",
+ "nonzero_ext",
+ "parking_lot",
+ "portable-atomic",
+ "smallvec",
+ "spinning_top",
+ "web-time",
 ]
 
 [[package]]
@@ -2424,7 +2424,7 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d96d2d1d716fb500937168cc09353ffdc7a012be8475ac7308e1bdf0e3923300"
 dependencies = [
-    "lock_api",
+ "lock_api",
 ]
 
 [[package]]

@@ -14,7 +14,6 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 use crate::app::models::client_event::{ClientInput, ClientKey, WireInput};
 use crate::app::models::sessions::shared_sessions::SharedSessions;
 use axum::{
@@ -30,8 +29,11 @@ use axum::{
 use axum_governor::{GovernorConfigBuilder, GovernorLayer, Quota, extractor::PeerIp, nz};
 use color_eyre::Result;
 use serde::Serialize;
+use std::net::SocketAddr;
+use std::time::Duration;
 use tokio::sync::broadcast;
 use tokio::sync::mpsc::UnboundedSender;
+use tokio::time::timeout;
 use tracing::{Instrument, info_span};
 use uuid::Uuid;
 
@@ -53,7 +55,11 @@ pub async fn start_server(sessions: SharedSessions) -> Result<()> {
     let app = Router::new().nest("/api", api).with_state(sessions);
     let listener = tokio::net::TcpListener::bind("0.0.0.0:4000").await?;
     tracing::info!(address = %listener.local_addr()?, "Server listening!!");
-    axum::serve(listener, app).await?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await?;
     Ok(())
 }
 
@@ -120,41 +126,49 @@ async fn handle_socket(
             }
 
             // rx from client
-            msg = socket.recv() => {
-                tracing::trace!(msg = ?msg, "rx from client");
-                match msg {
-                    Some(Ok(Message::Text(text))) => {
-                        let text = text.to_string();
-                        match parse_input(&text) {
-                            Some(input) => {
-                                if let Err(err) = tx.send(input) {
-                                    tracing::warn!(%err, "Error forwarding client input");
-                                    break;
-                                };
-                            }
+            res = timeout(Duration::from_secs(180), socket.recv()) => {
+                match res {
+                    Ok(msg) => {
+                        tracing::trace!(msg = ?msg, "rx from client");
+                        match msg {
+                            Some(Ok(Message::Text(text))) => {
+                                let text = text.to_string();
+                                match parse_input(&text) {
+                                    Some(input) => {
+                                        if let Err(err) = tx.send(input) {
+                                            tracing::warn!(%err, "Error forwarding client input");
+                                            break;
+                                        };
+                                    }
 
+                                    None => {
+                                        tracing::warn!(message = %text, "Invalid client message");
+                                    }
+                                }
+                            }
+                            Some(Ok(Message::Binary(_))) => {
+                                tracing::debug!("Ignoring binary message");
+                            }
+                            Some(Ok(Message::Close(_))) => {
+                                tracing::info!("Client requested close");
+                                break;
+                            }
+                            Some(Err(err)) => {
+                                tracing::warn!(%err, "Websocket error");
+                                break;
+                            }
                             None => {
-                                tracing::warn!(message = %text, "Invalid client message");
+                                tracing::info!("Websocket stream ended");
+                                break;
+                            }
+                            _ => {
+                                tracing::debug!("Ignoring unknown websocket message");
                             }
                         }
                     }
-                    Some(Ok(Message::Binary(_))) => {
-                        tracing::debug!("Ignoring binary message");
-                    }
-                    Some(Ok(Message::Close(_))) => {
-                        tracing::info!("Client requested close");
+                    Err(t) => {
+                        tracing::info!(elapsed=%t,"Client timed out after inactivity");
                         break;
-                    }
-                    Some(Err(err)) => {
-                        tracing::warn!(%err, "Websocket error");
-                        break;
-                    }
-                    None => {
-                        tracing::info!("Websocket stream ended");
-                        break;
-                    }
-                    _ => {
-                        tracing::debug!("Ignoring unknown websocket message");
                     }
                 }
             }

@@ -1,47 +1,76 @@
-// Copyright (C) 2026 Lordseriouspig
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as
-// published by the Free Software Foundation, either version 3 of the
-// License, or (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-// 
-// You should have received a copy of the GNU Affero General Public License
-// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+/*
+ * Copyright (C) 2026 Lordseriouspig
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
-use crate::tui::themes;
 use std::vec;
 
+use crate::tui::ui::components::{default_heading, default_inner, default_paragraph};
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
     prelude::*,
-    widgets::{Block, Paragraph, Widget, Wrap},
+    widgets::{Block, Paragraph, Widget},
 };
 
-const ASCII_ART_1: &str = r#" _    _      _ _       _    _____ _
+/*
+Page design guide (mainly for me, you can ignore this. I'll update this as I need)
+Page titles should be made with the Standard font on https://patorjk.com/software/taag/#p=display&f=Standard&t=Title+font&x=none&v=4&h=4&w=80&we=false.
+Pages should use components in ./ui/components.rs and widgets should be placed in ./ui/widgets.rs
+
+The structure of a view file should be:
+- Strings
+- Layout
+- Content
+ */
+
+pub fn render(border: Block<'static>, area: Rect, buf: &mut Buffer) {
+    // Text strings or whatever
+    let title_1 = r#" _    _      _ _       _    _____ _
 | |  | |    | | |     | |  |_   _( )
 | |__| | ___| | | ___ | |    | | |/ _ __ ___
 |  __  |/ _ \ | |/ _ \| |    | |   | '_ ` _ \
 | |  | |  __/ | | (_) |_|   _| |_  | | | | | |
 |_|  |_|\___|_|_|\___/(_)  |_____| |_| |_| |_|"#;
-const ASCII_ART_2: &str = r#"██╗      █████╗  ██████╗██╗  ██╗██╗      █████╗ ███╗   ██╗
+    let title_2 = r#"██╗      █████╗  ██████╗██╗  ██╗██╗      █████╗ ███╗   ██╗
 ██║     ██╔══██╗██╔════╝██║  ██║██║     ██╔══██╗████╗  ██║
 ██║     ███████║██║     ███████║██║     ███████║██╔██╗ ██║
 ██║     ██╔══██║██║     ██╔══██║██║     ██╔══██║██║╚██╗██║
 ███████╗██║  ██║╚██████╗██║  ██║███████╗██║  ██║██║ ╚████║
 ╚══════╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝
                                                           "#;
+    let p1 = vec![
+        Line::from(vec![
+            Span::raw(
+                "Hey! I'm Lachlan, and welcome to my website! I know it might not look like much on the surface, but this website is ",
+            ),
+            Span::styled(
+                "actually running a TUI on the backend! ",
+                Style::default().add_modifier(Modifier::ITALIC),
+            ),
+            Span::raw(
+                "Yup, that's right, this website is built entirely in rust! (well apart from a small vite server to serve the frontend). It's nowhere near done, but most of the stuff I still have to do is on the tui, not the actual server. This site might end up looking a lotttttt different soon as I inevitably decide I'm not happy with something and redesign everything.",
+            ),
+        ]),
+        Line::from(vec![]),
+        Line::from(vec![Span::raw(
+            "If you want to learn more about how this website works, you should take a look at the \"About This Site\" page! Be warned it is very rambly. (You can navigate there with either your ◄ ► keys or 'h' and 'l'!",
+        )]),
+    ];
 
-const BODY_TEXT: &str = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed condimentum nulla bibendum enim fermentum, id viverra ligula posuere. Curabitur hendrerit eros sed finibus porttitor. Vestibulum nec sollicitudin turpis. Maecenas sed nisl turpis. Mauris porttitor nec nunc vitae commodo. Nunc eget nibh sit amet ipsum tempus maximus. Duis venenatis malesuada metus imperdiet sodales. Etiam eu facilisis lectus. Nulla dui nisi, lobortis quis fermentum non, ultricies nec diam. Sed tristique est et augue viverra, id porta ex dignissim. Curabitur finibus nisl id sem suscipit, ut rhoncus enim aliquam. Phasellus ac lorem sit amet massa bibendum posuere. In convallis efficitur cursus. Etiam justo sapien, bibendum ac arcu ut, accumsan mattis ipsum. Vestibulum a venenatis elit.";
-
-pub fn render(border: Block<'static>, area: Rect, buf: &mut Buffer) {
-    let border = border.padding(ratatui::widgets::Padding::horizontal(1));
-    let inner_area = border.inner(area);
+    let (border, inner_area) = default_inner(border, area);
     border.render(area, buf);
     let block = Block::new().padding(ratatui::widgets::Padding::horizontal(1));
     let layout = Layout::default()
@@ -54,29 +83,15 @@ pub fn render(border: Block<'static>, area: Rect, buf: &mut Buffer) {
             Constraint::Length(7),
             Constraint::Length(7),
             Constraint::Fill(1),
-            Constraint::Fill(2)
+            Constraint::Fill(2),
         ])
         .split(layout[0]);
-    Paragraph::new(ASCII_ART_1)
+
+    Paragraph::new(title_1)
         .block(block.clone())
         .render(inner[0], buf);
-    Paragraph::new(ASCII_ART_2)
-        .block(block.clone())
-        .style(Style::new().fg(Color::Rgb(
-            themes::catppuccin::HEADING_TEXT.rgb.r,
-            themes::catppuccin::HEADING_TEXT.rgb.g,
-            themes::catppuccin::HEADING_TEXT.rgb.b,
-        )))
-        .render(inner[1], buf);
-    Paragraph::new(BODY_TEXT)
-        .block(block)
-        .style(Style::new().fg(Color::Rgb(
-            themes::catppuccin::BODY_TEXT.rgb.r,
-            themes::catppuccin::BODY_TEXT.rgb.g,
-            themes::catppuccin::BODY_TEXT.rgb.b,
-        )))
-        .wrap(Wrap { trim: true })
-        .render(inner[2], buf);
+    default_heading(title_2, block.clone()).render(inner[1], buf);
+    default_paragraph(p1, block.clone()).render(inner[2], buf);
     // TODO: Hackatime stats w/ loading anim
     // TODO: Right column w/ links, stats, github stuff, slack api stuff, time, etc
 }

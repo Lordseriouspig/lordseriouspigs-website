@@ -38,6 +38,8 @@ pub enum SelectedTab {
     Home,
     #[strum(to_string = "About")]
     About,
+    #[strum(to_string = "About This Site")]
+    AboutThisSite,
     #[strum(to_string = "Projects")]
     Projects,
     #[strum(to_string = "Contact")]

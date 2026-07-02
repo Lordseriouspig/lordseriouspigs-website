@@ -34,6 +34,7 @@ termContainer.style.height = "100%";
 app.appendChild(termContainer);
 
 const term = new Terminal({
+    fontSize: 18,
     cursorBlink: false,
     convertEol: true,
 })

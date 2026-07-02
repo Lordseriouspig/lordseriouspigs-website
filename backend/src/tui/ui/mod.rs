@@ -15,5 +15,5 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod about_this_site;
-pub mod home;
+pub mod components;
+pub mod widgets;

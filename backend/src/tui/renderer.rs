@@ -1,17 +1,19 @@
-// Copyright (C) 2026 Lordseriouspig
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as
-// published by the Free Software Foundation, either version 3 of the
-// License, or (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-// 
-// You should have received a copy of the GNU Affero General Public License
-// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+/*
+ * Copyright (C) 2026 Lordseriouspig
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 use crate::tui::themes;
 use ratatui::{
@@ -25,8 +27,8 @@ use ratatui::{
 use strum::IntoEnumIterator;
 
 use crate::app::models::state::{App, SelectedTab};
-use crate::tui::views::home;
-
+use crate::tui::themes::catppuccin::to_ratatui;
+use crate::tui::views::*;
 
 impl SelectedTab {
     /// Get the previous tab, if there is no previous tab return the current tab.
@@ -72,16 +74,16 @@ impl App {
     fn render_tabs(&self, area: Rect, buf: &mut Buffer) {
         let titles = SelectedTab::iter().map(SelectedTab::title);
         let highlight_style = Style::default()
-        .fg(Color::Rgb(
-            themes::catppuccin::ON_ACCENT.rgb.r,
-            themes::catppuccin::ON_ACCENT.rgb.g,
-            themes::catppuccin::ON_ACCENT.rgb.b,
-        ))
-        .bg(Color::Rgb(
-            themes::catppuccin::ACTIVE_BORDER.rgb.r,
-            themes::catppuccin::ACTIVE_BORDER.rgb.g,
-            themes::catppuccin::ACTIVE_BORDER.rgb.b,
-        ));
+            .fg(Color::Rgb(
+                themes::catppuccin::ON_ACCENT.rgb.r,
+                themes::catppuccin::ON_ACCENT.rgb.g,
+                themes::catppuccin::ON_ACCENT.rgb.b,
+            ))
+            .bg(Color::Rgb(
+                themes::catppuccin::ACTIVE_BORDER.rgb.r,
+                themes::catppuccin::ACTIVE_BORDER.rgb.g,
+                themes::catppuccin::ACTIVE_BORDER.rgb.b,
+            ));
         let selected_tab_index = self.selected_tab as usize;
         Tabs::new(titles)
             .highlight_style(highlight_style)
@@ -107,9 +109,10 @@ impl Widget for SelectedTab {
         // in a real app these might be separate widgets
         match self {
             Self::Home => home::render(self.block(), area, buf),
-            Self::About => self.render_tab1(area, buf),
-            Self::Projects => self.render_tab2(area, buf),
-            Self::Contact => self.render_tab3(area, buf),
+            Self::About => self.coming_soon(area, buf),
+            Self::AboutThisSite => about_this_site::render(self.block(), area, buf),
+            Self::Projects => self.coming_soon(area, buf),
+            Self::Contact => self.coming_soon(area, buf),
         }
     }
 }
@@ -118,33 +121,13 @@ impl SelectedTab {
     /// Return tab's name as a styled `Line`
     fn title(self) -> Line<'static> {
         format!("  {self}  ")
-            .fg(Color::Rgb(
-                themes::catppuccin::ON_ACCENT.rgb.r,
-                themes::catppuccin::ON_ACCENT.rgb.g,
-                themes::catppuccin::ON_ACCENT.rgb.b,
-            ))
-            .bg(Color::Rgb(
-                themes::catppuccin::INACTIVE_BORDER.rgb.r,
-                themes::catppuccin::INACTIVE_BORDER.rgb.g,
-                themes::catppuccin::INACTIVE_BORDER.rgb.b,
-            ),)
+            .fg(to_ratatui(themes::catppuccin::ON_ACCENT))
+            .bg(to_ratatui(themes::catppuccin::INACTIVE_BORDER))
             .into()
     }
 
-    fn render_tab1(self, area: Rect, buf: &mut Buffer) {
-        Paragraph::new("Welcome to the Ratatui tabs example!")
-            .block(self.block())
-            .render(area, buf);
-    }
-
-    fn render_tab2(self, area: Rect, buf: &mut Buffer) {
-        Paragraph::new("Look! I'm different than others!")
-            .block(self.block())
-            .render(area, buf);
-    }
-
-    fn render_tab3(self, area: Rect, buf: &mut Buffer) {
-        Paragraph::new("I know, these are some basic changes. But I think you got the main idea.")
+    fn coming_soon(self, area: Rect, buf: &mut Buffer) {
+        Paragraph::new("Coming Soon")
             .block(self.block())
             .render(area, buf);
     }
@@ -154,10 +137,6 @@ impl SelectedTab {
         Block::bordered()
             .border_set(symbols::border::PROPORTIONAL_TALL)
             .padding(Padding::horizontal(1))
-            .border_style(Color::Rgb(
-                themes::catppuccin::ACTIVE_BORDER.rgb.r,
-                themes::catppuccin::ACTIVE_BORDER.rgb.g,
-                themes::catppuccin::ACTIVE_BORDER.rgb.b,
-            ),)
+            .border_style(to_ratatui(themes::catppuccin::ACTIVE_BORDER))
     }
 }

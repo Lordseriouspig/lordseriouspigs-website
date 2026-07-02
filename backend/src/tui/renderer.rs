@@ -65,7 +65,17 @@ impl Widget for &App {
 
         render_title(title_area, buf);
         self.render_tabs(tabs_area, buf);
-        self.selected_tab.render(inner_area, buf);
+        match self.selected_tab {
+            SelectedTab::Home => {
+                home::render(self.selected_tab.block(), inner_area, buf, &self.api_state)
+            }
+            SelectedTab::About => self.selected_tab.coming_soon(inner_area, buf),
+            SelectedTab::AboutThisSite => {
+                about_this_site::render(self.selected_tab.block(), inner_area, buf)
+            }
+            SelectedTab::Projects => self.selected_tab.coming_soon(inner_area, buf),
+            SelectedTab::Contact => self.selected_tab.coming_soon(inner_area, buf),
+        }
         render_footer(footer_area, buf);
     }
 }
@@ -102,19 +112,6 @@ fn render_footer(area: Rect, buf: &mut Buffer) {
     Line::raw("◄ ► to change tab | Press q to quit")
         .centered()
         .render(area, buf);
-}
-
-impl Widget for SelectedTab {
-    fn render(self, area: Rect, buf: &mut Buffer) {
-        // in a real app these might be separate widgets
-        match self {
-            Self::Home => home::render(self.block(), area, buf),
-            Self::About => self.coming_soon(area, buf),
-            Self::AboutThisSite => about_this_site::render(self.block(), area, buf),
-            Self::Projects => self.coming_soon(area, buf),
-            Self::Contact => self.coming_soon(area, buf),
-        }
-    }
 }
 
 impl SelectedTab {

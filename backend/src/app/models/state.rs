@@ -14,6 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::app::models::api::api_state::SharedApiState;
 use strum::{Display, EnumIter, FromRepr};
 
 #[derive(Default, Clone)]
@@ -21,6 +22,7 @@ pub struct App {
     pub state: AppState,
     pub selected_tab: SelectedTab,
     pub area_change: Option<ratatui::layout::Rect>,
+    pub api_state: SharedApiState,
 }
 
 #[derive(Default, Clone, Copy, PartialEq, Eq)]

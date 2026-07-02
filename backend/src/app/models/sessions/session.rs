@@ -14,9 +14,15 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::app::api_poller::spawn_poller;
+use crate::app::models::api::api_state::{ApiState, SharedApiState};
+use crate::app::models::api::stats::StatsConf;
 use crate::app::models::client_event::ClientInput;
 use crate::app::models::state::App;
-use tokio::sync::{broadcast, mpsc};
+use std::env;
+use std::sync::Arc;
+use tokio::sync::{RwLock, broadcast, mpsc};
+use tracing::Instrument;
 use uuid::Uuid;
 
 pub struct Session {
@@ -26,6 +32,8 @@ pub struct Session {
 
     pub input_tx: mpsc::UnboundedSender<ClientInput>,
     pub input_rx: mpsc::UnboundedReceiver<ClientInput>,
+
+    pub api_state: SharedApiState,
 }
 
 pub struct SessionHandle {
@@ -38,13 +46,38 @@ impl Session {
     pub fn new(id: Uuid) -> (Self, SessionHandle) {
         let (output_tx, _) = broadcast::channel(200);
         let (input_tx, input_rx) = mpsc::unbounded_channel();
+        let api_state: SharedApiState = Arc::new(RwLock::new(ApiState::default()));
+        let api_state_poller = Arc::clone(&api_state);
+        let api_client = reqwest::Client::new();
+
+        let stats_cfg = StatsConf {
+            base_url: env::var("HACKATIME_URL")
+                .unwrap_or_else(|_| "https://hackatime.hackclub.com".to_string()),
+
+            username: env::var("HACKATIME_USERNAME").ok(),
+
+            api_key: env::var("HACKATIME_STATS_API_KEY").ok(),
+        };
+
+        tokio::spawn(
+            async move {
+                spawn_poller(api_state_poller, api_client, stats_cfg).await;
+            }
+            .instrument(tracing::info_span!("API Poller", id = %id)),
+        );
+
+        let app = App {
+            api_state: api_state.clone(),
+            ..App::default()
+        };
 
         let session = Session {
             id,
-            app: App::default(),
+            app,
             input_tx: input_tx.clone(),
             input_rx,
             output_tx: output_tx.clone(),
+            api_state,
         };
 
         let handle = SessionHandle {

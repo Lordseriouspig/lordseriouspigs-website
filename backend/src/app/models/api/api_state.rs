@@ -15,6 +15,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod api_poller;
-pub mod models;
-pub mod runtime;
+use crate::app::models::api::stats::StatsResp;
+use std::sync::Arc;
+use std::time::Instant;
+use tokio::sync::RwLock;
+
+#[derive(Default, Clone)]
+pub struct ApiState {
+    pub stats: Option<StatsResp>,
+    pub last_updated: Option<Instant>,
+}
+
+pub type SharedApiState = Arc<RwLock<ApiState>>;

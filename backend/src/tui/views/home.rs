@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::vec;
-
+use crate::app::models::api::api_state::SharedApiState;
+use crate::tui::themes::catppuccin::*;
 use crate::tui::ui::components::{default_heading, default_inner, default_paragraph};
 use ratatui::{
     buffer::Buffer,
@@ -24,11 +24,12 @@ use ratatui::{
     prelude::*,
     widgets::{Block, Paragraph, Widget},
 };
-
+use std::vec;
+use tui_piechart::{PieChart, PieSlice};
 /*
 Page design guide (mainly for me, you can ignore this. I'll update this as I need)
 Page titles should be made with the Standard font on https://patorjk.com/software/taag/#p=display&f=Standard&t=Title+font&x=none&v=4&h=4&w=80&we=false.
-Pages should use components in ./ui/components.rs and widgets should be placed in ./ui/widgets.rs
+Pages should use components in ./ui/components.rs.
 
 The structure of a view file should be:
 - Strings
@@ -36,7 +37,7 @@ The structure of a view file should be:
 - Content
  */
 
-pub fn render(border: Block<'static>, area: Rect, buf: &mut Buffer) {
+pub fn render(border: Block<'static>, area: Rect, buf: &mut Buffer, api_state: &SharedApiState) {
     // Text strings or whatever
     let title_1 = r#" _    _      _ _       _    _____ _
 | |  | |    | | |     | |  |_   _( )
@@ -61,7 +62,7 @@ pub fn render(border: Block<'static>, area: Rect, buf: &mut Buffer) {
                 Style::default().add_modifier(Modifier::ITALIC),
             ),
             Span::raw(
-                "Yup, that's right, this website is built entirely in rust! (well apart from a small vite server to serve the frontend). It's nowhere near done, but most of the stuff I still have to do is on the tui, not the actual server. This site might end up looking a lotttttt different soon as I inevitably decide I'm not happy with something and redesign everything.",
+                "Yup, that's right, this website is built entirely in rust! (well apart from a small vite server to serve the frontend). It's nowhere near done, but most of the stuff I still have to do is on the tui, not the actual server. This site might end up looking a lotttttt different soon as I inevitably decide I'm not happy with something and redesign everything. Obviously I'm planning on adding a bit more to this page, I just wanted to get something shipped quickly, I'll probably add some more hackatime stats and neaten some things out, and maybe add some stuff off to the right.",
             ),
         ]),
         Line::from(vec![]),
@@ -86,12 +87,58 @@ pub fn render(border: Block<'static>, area: Rect, buf: &mut Buffer) {
             Constraint::Fill(2),
         ])
         .split(layout[0]);
+    let hackatime_stats = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(vec![Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(inner[3]);
 
     Paragraph::new(title_1)
         .block(block.clone())
         .render(inner[0], buf);
     default_heading(title_2, block.clone()).render(inner[1], buf);
     default_paragraph(p1, block.clone()).render(inner[2], buf);
-    // TODO: Hackatime stats w/ loading anim
+
+    // Hackatime Widget. I would have really like to do this in a separate file, but weird sync stuff yk
+    let colors = [
+        to_ratatui(COLOR_0),
+        to_ratatui(COLOR_1),
+        to_ratatui(COLOR_2),
+        to_ratatui(COLOR_3),
+        to_ratatui(COLOR_4),
+        to_ratatui(COLOR_5),
+        to_ratatui(COLOR_6),
+        to_ratatui(COLOR_7),
+        to_ratatui(COLOR_8),
+        to_ratatui(COLOR_9),
+        to_ratatui(COLOR_10),
+        to_ratatui(COLOR_11),
+        to_ratatui(COLOR_12),
+        to_ratatui(COLOR_13),
+        to_ratatui(COLOR_14),
+        to_ratatui(COLOR_15),
+        to_ratatui(COLOR_16),
+        to_ratatui(COLOR_17),
+    ];
+
+    if let Ok(guard) = api_state.try_read() {
+        if let Some(stats) = &guard.stats {
+            if let Some(languages) = &stats.data.languages {
+                let slices: Vec<PieSlice> = languages
+                    .iter()
+                    .enumerate()
+                    .map(|(i, lang)| {
+                        let color = colors[i % colors.len()];
+                        PieSlice::new(&lang.name, lang.total_seconds as f64, color)
+                    })
+                    .collect();
+                PieChart::new(slices)
+                    .block(Block::bordered().title("Hackatime Language Stats"))
+                    .high_resolution(true)
+                    .render(hackatime_stats[0], buf);
+            }
+        }
+    };
+
+    // TODO: Neaten up hackatime and cols and stuff
     // TODO: Right column w/ links, stats, github stuff, slack api stuff, time, etc
 }

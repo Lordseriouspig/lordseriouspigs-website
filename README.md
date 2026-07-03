@@ -39,7 +39,7 @@ If you, for some reason, want to download and run this on your own system, you m
    ```cd lordseriouspigs-website```
 3. Create ``./backend/.env`` from ``./backend/.env.example``
 4. Run
-   ```docker compose up```
+   ```docker compose up --build```
 5. Profit!
 
 ### Without docker

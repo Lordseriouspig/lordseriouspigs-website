@@ -20,8 +20,6 @@ pub mod middleware;
 pub mod tui;
 
 use color_eyre::Result;
-use dotenvy::from_filename;
-use std::env;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing_subscriber::EnvFilter;
@@ -31,16 +29,8 @@ use crate::middleware::websocket::server::start_server;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let environment = env::var("APP_ENV").unwrap_or_else(|_| "development".to_string());
-
-    match environment.as_str() {
-        "production" => {
-            from_filename(".env.production").expect(".env.production file not found");
-        }
-        _ => {
-            from_filename(".env.development").expect(".env.development file not found");
-        }
-    }
+    #[cfg(debug_assertions)]
+    dotenvy::dotenv().ok();
 
     color_eyre::install()?;
 
@@ -48,7 +38,7 @@ async fn main() -> Result<()> {
         .with_env_filter(EnvFilter::from_default_env())
         .init();
 
-    tracing::info!(environment, "Starting!");
+    tracing::info!(debug=%cfg!(debug_assertions), "Starting!");
 
     let sessions = Arc::new(RwLock::new(SessionManager::new()));
 

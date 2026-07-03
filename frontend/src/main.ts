@@ -62,7 +62,7 @@ if (mobile_ack) {
     try {
         const response =
             await fetch(
-                "http://192.168.1.64:4000/api/session",
+                "/api/session",
                 {
                     method: "POST",
                 }
@@ -79,7 +79,10 @@ if (mobile_ack) {
         const sessionId =
             data.session_id;
 
-        const ws = new WebSocket(`ws://192.168.1.64:4000/api/ws/${sessionId}`);
+        const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+        const host = window.location.host;
+
+        const ws = new WebSocket(`${protocol}://${host}/api/ws/${sessionId}`);
         ws.binaryType = "arraybuffer";
 
         ws.onopen = () => {

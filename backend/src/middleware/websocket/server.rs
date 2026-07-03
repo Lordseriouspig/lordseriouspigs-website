@@ -16,6 +16,10 @@
  */
 use crate::app::models::client_event::{ClientInput, ClientKey, WireInput};
 use crate::app::models::sessions::shared_sessions::SharedSessions;
+use axum::extract::ConnectInfo;
+use axum::http::Request;
+use axum::middleware::Next;
+use axum::response::Response;
 use axum::{
     Router,
     extract::{
@@ -43,12 +47,35 @@ struct CreateSessionResponse {
     session_id: String,
 }
 
+pub async fn req_logger(
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    req: Request<axum::body::Body>,
+    next: Next,
+) -> Response {
+    let ip = addr.ip();
+
+    let ua = req
+        .headers()
+        .get(axum::http::header::USER_AGENT)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("unknown");
+
+    tracing::info!(
+        ip = %ip,
+        user_agent = %ua,
+        method = %req.method(),
+        uri = %req.uri(),
+        "request received"
+    );
+
+    next.run(req).await
+}
+
 pub async fn start_server(sessions: SharedSessions) -> Result<()> {
     let cfg = GovernorConfigBuilder::default()
-        .with_extractor(SmartIp::new().with_trusted_proxies(vec![
-            "127.0.0.1/32".parse::<IpNet>().unwrap(),
-            "::1/128".parse::<IpNet>().unwrap(),
-        ]))
+        .with_extractor(
+            SmartIp::new().with_trusted_proxies(vec!["172.20.0.10/32".parse::<IpNet>().unwrap()]),
+        )
         .expect_connect_info()
         .quota_default(Quota::requests_per_minute(nz!(10u32)))
         .finish()?;

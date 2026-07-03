@@ -37,9 +37,10 @@ If you, for some reason, want to download and run this on your own system, you m
    ```git clone https://github.com/Lordseriouspig/lordseriouspigs-website.git```
 2. cd into the directory
    ```cd lordseriouspigs-website```
-3. Run
+3. Create ``./backend/.env`` from ``./backend/.env.example``
+4. Run
    ```docker compose up```
-4. Profit!
+5. Profit!
 
 ### Without docker
 
@@ -50,9 +51,10 @@ docker pretty easily,
    ```git clone https://github.com/Lordseriouspig/lordseriouspigs-website.git```
 2. cd into the directory
    ```cd lordseriouspigs-website```
-3. Run ``cargo run --manifest-path ./backend/Cargo.toml & npm --prefix ./frontend run dev`` (or just yk run these
+3. Create ``./backend/.env`` from ``./backend/.env.example``
+4. Run ``cargo run --manifest-path ./backend/Cargo.toml & npm --prefix ./frontend run dev`` (or just yk run these
    separately, then you wont have to kill the backend task manually)
-4. Profit?
+5. Profit?
 
 ## Contributing
 

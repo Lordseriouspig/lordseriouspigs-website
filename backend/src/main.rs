@@ -20,6 +20,7 @@ pub mod middleware;
 pub mod tui;
 
 use color_eyre::Result;
+use std::env;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing_subscriber::EnvFilter;
@@ -34,9 +35,19 @@ async fn main() -> Result<()> {
 
     color_eyre::install()?;
 
-    tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env())
-        .init();
+    if env::var("JSON_LOG")
+        .map(|v| v.eq_ignore_ascii_case("true"))
+        .unwrap_or(false)
+    {
+        tracing_subscriber::fmt()
+            .json()
+            .with_env_filter(EnvFilter::from_default_env())
+            .init();
+    } else {
+        tracing_subscriber::fmt()
+            .with_env_filter(EnvFilter::from_default_env())
+            .init();
+    };
 
     tracing::info!(debug=%cfg!(debug_assertions), "Starting!");
 
